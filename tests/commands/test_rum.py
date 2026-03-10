@@ -10,7 +10,7 @@ from tests.conftest import create_mock_rum_event
 
 def test_rum_events_table(mock_client, runner):
     """Test events table output has correct headers and content."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     now = datetime.now()
     mock_events = [
@@ -20,7 +20,7 @@ def test_rum_events_table(mock_client, runner):
     mock_response = Mock(data=mock_events)
     mock_client.rum.list_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["events"])
 
         assert result.exit_code == 0
@@ -33,7 +33,7 @@ def test_rum_events_table(mock_client, runner):
 
 def test_rum_events_json(mock_client, runner):
     """Test events JSON output has expected fields."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     now = datetime.now()
     mock_events = [
@@ -42,7 +42,7 @@ def test_rum_events_json(mock_client, runner):
     mock_response = Mock(data=mock_events)
     mock_client.rum.list_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["events", "--format", "json"])
 
         assert result.exit_code == 0
@@ -56,12 +56,12 @@ def test_rum_events_json(mock_client, runner):
 
 def test_rum_events_empty(mock_client, runner):
     """Test events with no results shows total 0."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     mock_response = Mock(data=[])
     mock_client.rum.list_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["events"])
 
         assert result.exit_code == 0
@@ -70,12 +70,12 @@ def test_rum_events_empty(mock_client, runner):
 
 def test_rum_events_with_query(mock_client, runner):
     """Test events with --query passes query to API."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     mock_response = Mock(data=[])
     mock_client.rum.list_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["events", "--query", "@type:error"])
 
         assert result.exit_code == 0
@@ -85,12 +85,12 @@ def test_rum_events_with_query(mock_client, runner):
 
 def test_rum_events_with_time_range(mock_client, runner):
     """Test events with --from 24h is accepted."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     mock_response = Mock(data=[])
     mock_client.rum.list_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["events", "--from", "24h"])
 
         assert result.exit_code == 0
@@ -99,12 +99,12 @@ def test_rum_events_with_time_range(mock_client, runner):
 
 def test_rum_events_with_limit(mock_client, runner):
     """Test events respects --limit parameter."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     mock_response = Mock(data=[])
     mock_client.rum.list_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["events", "--limit", "10"])
 
         assert result.exit_code == 0
@@ -117,7 +117,7 @@ def test_rum_events_with_limit(mock_client, runner):
 
 def test_rum_analytics_table(mock_client, runner):
     """Test analytics table output has correct columns."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     class MockBucket:
         def __init__(self, event_type, count):
@@ -131,7 +131,7 @@ def test_rum_analytics_table(mock_client, runner):
     mock_response = Mock(data=Mock(buckets=mock_buckets))
     mock_client.rum.aggregate_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["analytics", "--metric", "count", "--group-by", "@type"])
 
         assert result.exit_code == 0
@@ -145,7 +145,7 @@ def test_rum_analytics_table(mock_client, runner):
 
 def test_rum_analytics_json(mock_client, runner):
     """Test analytics JSON output has expected structure."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     class MockBucket:
         def __init__(self, event_type, count):
@@ -159,7 +159,7 @@ def test_rum_analytics_json(mock_client, runner):
     mock_response = Mock(data=Mock(buckets=mock_buckets))
     mock_client.rum.aggregate_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             rum,
             ["analytics", "--metric", "count", "--group-by", "@type", "--format", "json"],
@@ -176,7 +176,7 @@ def test_rum_analytics_json(mock_client, runner):
 
 def test_rum_analytics_p99(mock_client, runner):
     """Test analytics with p99 metric converts ns to ms."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     class MockBucket:
         def __init__(self, url, p99_ns):
@@ -189,7 +189,7 @@ def test_rum_analytics_p99(mock_client, runner):
     mock_response = Mock(data=Mock(buckets=mock_buckets))
     mock_client.rum.aggregate_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             rum,
             [
@@ -211,7 +211,7 @@ def test_rum_analytics_p99(mock_client, runner):
 
 def test_rum_analytics_avg(mock_client, runner):
     """Test analytics with avg metric converts ns to ms."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     class MockBucket:
         def __init__(self, country, avg_ns):
@@ -225,7 +225,7 @@ def test_rum_analytics_avg(mock_client, runner):
     mock_response = Mock(data=Mock(buckets=mock_buckets))
     mock_client.rum.aggregate_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             rum,
             [
@@ -248,7 +248,7 @@ def test_rum_analytics_avg(mock_client, runner):
 
 def test_rum_analytics_without_groupby(mock_client, runner):
     """Test analytics without group-by returns single aggregate."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     class MockBucket:
         def __init__(self, count):
@@ -259,7 +259,7 @@ def test_rum_analytics_without_groupby(mock_client, runner):
     mock_response = Mock(data=Mock(buckets=mock_buckets))
     mock_client.rum.aggregate_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["analytics", "--metric", "count", "--format", "json"])
 
         assert result.exit_code == 0
@@ -270,12 +270,12 @@ def test_rum_analytics_without_groupby(mock_client, runner):
 
 def test_rum_analytics_empty(mock_client, runner):
     """Test analytics with no results shows total 0."""
-    from ddogctl.commands.rum import rum
+    from puppy_kit.commands.rum import rum
 
     mock_response = Mock(data=Mock(buckets=[]))
     mock_client.rum.aggregate_rum_events.return_value = mock_response
 
-    with patch("ddogctl.commands.rum.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.rum.get_datadog_client", return_value=mock_client):
         result = runner.invoke(rum, ["analytics", "--metric", "count"])
 
         assert result.exit_code == 0

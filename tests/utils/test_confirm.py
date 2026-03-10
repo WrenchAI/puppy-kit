@@ -3,7 +3,7 @@
 import click
 from click.testing import CliRunner
 
-from ddogctl.utils.confirm import confirm_action
+from puppy_kit.utils.confirm import confirm_action
 
 
 class TestConfirmAction:

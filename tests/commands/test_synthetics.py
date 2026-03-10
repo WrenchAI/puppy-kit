@@ -42,7 +42,7 @@ def _make_trigger_result(public_id, result_id):
 
 def test_list_tests_table(mock_client, runner):
     """Test listing Synthetics tests in table format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     tests = [
         _make_test("abc-123", "HealthCheck", "api", "live", ["aws:us-east-1"], ["env:prod"]),
@@ -50,7 +50,7 @@ def test_list_tests_table(mock_client, runner):
     ]
     mock_client.synthetics.list_tests.return_value = Mock(tests=tests)
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["list"])
 
     assert result.exit_code == 0
@@ -64,7 +64,7 @@ def test_list_tests_table(mock_client, runner):
 
 def test_list_tests_json(mock_client, runner):
     """Test listing Synthetics tests in JSON format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     tests = [
         _make_test("abc-123", "API Health Check", "api", "live", ["aws:us-east-1"], ["env:prod"]),
@@ -74,7 +74,7 @@ def test_list_tests_json(mock_client, runner):
     ]
     mock_client.synthetics.list_tests.return_value = Mock(tests=tests)
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["list", "--format", "json"])
 
     assert result.exit_code == 0
@@ -93,11 +93,11 @@ def test_list_tests_json(mock_client, runner):
 
 def test_list_tests_empty(mock_client, runner):
     """Test listing Synthetics tests when no tests exist."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     mock_client.synthetics.list_tests.return_value = Mock(tests=[])
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["list"])
 
     assert result.exit_code == 0
@@ -109,7 +109,7 @@ def test_list_tests_empty(mock_client, runner):
 
 def test_get_test_table(mock_client, runner):
     """Test getting a Synthetics test in table format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     test = _make_test(
         "abc-123",
@@ -122,7 +122,7 @@ def test_get_test_table(mock_client, runner):
     )
     mock_client.synthetics.get_test.return_value = test
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["get", "abc-123"])
 
     assert result.exit_code == 0
@@ -137,7 +137,7 @@ def test_get_test_table(mock_client, runner):
 
 def test_get_test_json(mock_client, runner):
     """Test getting a Synthetics test in JSON format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     test = _make_test(
         "abc-123",
@@ -150,7 +150,7 @@ def test_get_test_json(mock_client, runner):
     )
     mock_client.synthetics.get_test.return_value = test
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["get", "abc-123", "--format", "json"])
 
     assert result.exit_code == 0
@@ -166,12 +166,12 @@ def test_get_test_json(mock_client, runner):
 
 def test_get_test_not_found(mock_client, runner):
     """Test getting a nonexistent Synthetics test returns error exit code."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
     from datadog_api_client.exceptions import ApiException
 
     mock_client.synthetics.get_test.side_effect = ApiException(status=404, reason="Not Found")
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["get", "nonexistent-id"])
 
     assert result.exit_code != 0
@@ -182,7 +182,7 @@ def test_get_test_not_found(mock_client, runner):
 
 def test_results_table(mock_client, runner):
     """Test getting Synthetics results in table format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     results = [
         _make_result("res-001", "0", 1700000000.0, "aws:us-east-1"),
@@ -190,7 +190,7 @@ def test_results_table(mock_client, runner):
     ]
     mock_client.synthetics.get_api_test_latest_results.return_value = Mock(results=results)
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["results", "abc-123"])
 
     assert result.exit_code == 0
@@ -202,7 +202,7 @@ def test_results_table(mock_client, runner):
 
 def test_results_json(mock_client, runner):
     """Test getting Synthetics results in JSON format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     results = [
         _make_result("res-001", "0", 1700000000.0, "aws:us-east-1"),
@@ -210,7 +210,7 @@ def test_results_json(mock_client, runner):
     ]
     mock_client.synthetics.get_api_test_latest_results.return_value = Mock(results=results)
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["results", "abc-123", "--format", "json"])
 
     assert result.exit_code == 0
@@ -226,11 +226,11 @@ def test_results_json(mock_client, runner):
 
 def test_results_empty(mock_client, runner):
     """Test getting Synthetics results when none exist."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     mock_client.synthetics.get_api_test_latest_results.return_value = Mock(results=[])
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["results", "abc-123"])
 
     assert result.exit_code == 0
@@ -242,14 +242,14 @@ def test_results_empty(mock_client, runner):
 
 def test_trigger_test_table(mock_client, runner):
     """Test triggering a Synthetics test in table format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     triggered = [_make_trigger_result("abc-123", "triggered-res-001")]
     mock_response = Mock(results=triggered)
     mock_response.locations = []
     mock_client.synthetics.trigger_tests.return_value = mock_response
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["trigger", "abc-123"])
 
     assert result.exit_code == 0
@@ -261,14 +261,14 @@ def test_trigger_test_table(mock_client, runner):
 
 def test_trigger_test_json(mock_client, runner):
     """Test triggering a Synthetics test in JSON format."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     triggered = [_make_trigger_result("abc-123", "triggered-res-001")]
     mock_response = Mock(results=triggered)
     mock_response.locations = []
     mock_client.synthetics.trigger_tests.return_value = mock_response
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["trigger", "abc-123", "--format", "json"])
 
     assert result.exit_code == 0
@@ -280,14 +280,14 @@ def test_trigger_test_json(mock_client, runner):
 
 def test_trigger_test_calls_api_correctly(mock_client, runner):
     """Test that trigger passes the correct body to the API."""
-    from ddogctl.commands.synthetics import synthetics
+    from puppy_kit.commands.synthetics import synthetics
 
     triggered = [_make_trigger_result("xyz-789", "res-999")]
     mock_response = Mock(results=triggered)
     mock_response.locations = []
     mock_client.synthetics.trigger_tests.return_value = mock_response
 
-    with patch("ddogctl.commands.synthetics.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
         result = runner.invoke(synthetics, ["trigger", "xyz-789"])
 
     assert result.exit_code == 0

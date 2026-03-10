@@ -4,7 +4,7 @@ import json
 import pytest
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from ddogctl.commands.notebook import notebook
+from puppy_kit.commands.notebook import notebook
 
 
 class TestListNotebooks:
@@ -49,7 +49,7 @@ class TestListNotebooks:
         response.data = [nb1, nb2]
         mock_client.notebooks.list_notebooks.return_value = response
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -65,7 +65,7 @@ class TestListNotebooks:
         response.data = [nb1]
         mock_client.notebooks.list_notebooks.return_value = response
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -81,7 +81,7 @@ class TestListNotebooks:
         response.data = []
         mock_client.notebooks.list_notebooks.return_value = response
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -136,7 +136,7 @@ class TestGetNotebook:
         )
         mock_client.notebooks.get_notebook.return_value = response
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["get", "42"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -151,7 +151,7 @@ class TestGetNotebook:
         response = self._make_notebook_detail(id=42, name="Latency Investigation")
         mock_client.notebooks.get_notebook.return_value = response
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["get", "42", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -187,7 +187,7 @@ class TestCreateNotebook:
         response.data = nb
         mock_client.notebooks.create_notebook.return_value = response
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["create", "--name", "New Notebook"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -208,7 +208,7 @@ class TestCreateNotebook:
         response.data = nb
         mock_client.notebooks.create_notebook.return_value = response
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 notebook, ["create", "--name", "New Notebook", "--format", "json"]
             )
@@ -220,7 +220,7 @@ class TestCreateNotebook:
 
     def test_create_notebook_requires_name(self, mock_client, runner):
         """Test that --name is required."""
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["create"])
 
         assert result.exit_code != 0
@@ -244,7 +244,7 @@ class TestDeleteNotebook:
         """Test deleting a notebook with --confirm flag (no prompt)."""
         mock_client.notebooks.delete_notebook.return_value = None
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["delete", "42", "--confirm"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -255,7 +255,7 @@ class TestDeleteNotebook:
         """Test deleting a notebook with interactive confirmation (user says yes)."""
         mock_client.notebooks.delete_notebook.return_value = None
 
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["delete", "42"], input="y\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -264,7 +264,7 @@ class TestDeleteNotebook:
 
     def test_delete_notebook_without_confirm(self, mock_client, runner):
         """Test deleting a notebook with interactive confirmation (user says no)."""
-        with patch("ddogctl.commands.notebook.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(notebook, ["delete", "42"], input="n\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"

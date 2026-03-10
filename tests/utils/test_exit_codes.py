@@ -1,6 +1,6 @@
 """Tests for semantic exit codes."""
 
-from ddogctl.utils.exit_codes import (
+from puppy_kit.utils.exit_codes import (
     SUCCESS,
     GENERAL_ERROR,
     AUTH_ERROR,

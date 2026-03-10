@@ -4,7 +4,7 @@ import json
 import pytest
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from ddogctl.commands.slo import slo, parse_thresholds
+from puppy_kit.commands.slo import slo, parse_thresholds
 
 # ============================================================================
 # parse_thresholds Tests
@@ -111,7 +111,7 @@ def test_slo_list_table_format(mock_client, runner):
     ]
     mock_client.slos.list_slos.return_value = Mock(data=mock_slos)
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -127,7 +127,7 @@ def test_slo_list_json_format(mock_client, runner):
     ]
     mock_client.slos.list_slos.return_value = Mock(data=mock_slos)
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -144,7 +144,7 @@ def test_slo_list_with_query(mock_client, runner):
     ]
     mock_client.slos.list_slos.return_value = Mock(data=mock_slos)
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["list", "--query", "API"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -161,7 +161,7 @@ def test_slo_list_with_tags_filter(mock_client, runner):
     ]
     mock_client.slos.list_slos.return_value = Mock(data=mock_slos)
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["list", "--tags", "team:platform"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -177,7 +177,7 @@ def test_slo_list_with_limit(mock_client, runner):
     ]
     mock_client.slos.list_slos.return_value = Mock(data=mock_slos)
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["list", "--limit", "5"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -190,7 +190,7 @@ def test_slo_list_empty(mock_client, runner):
     """Test listing SLOs when none exist."""
     mock_client.slos.list_slos.return_value = Mock(data=[])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -213,7 +213,7 @@ def test_slo_get_table_format(mock_client, runner):
     )
     mock_client.slos.get_slo.return_value = Mock(data=mock_slo)
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["get", "abc123"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -227,7 +227,7 @@ def test_slo_get_json_format(mock_client, runner):
     mock_slo = _make_mock_slo("abc123", "API Availability", "metric")
     mock_client.slos.get_slo.return_value = Mock(data=mock_slo)
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["get", "abc123", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -246,7 +246,7 @@ def test_slo_create_metric_type(mock_client, runner):
     created_slo = _make_mock_slo("new123", "API Availability", "metric")
     mock_client.slos.create_slo.return_value = Mock(data=[created_slo])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -276,7 +276,7 @@ def test_slo_create_monitor_type(mock_client, runner):
     created_slo = _make_mock_slo("new456", "DB Health", "monitor")
     mock_client.slos.create_slo.return_value = Mock(data=[created_slo])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -315,7 +315,7 @@ def test_slo_create_from_file(mock_client, runner, tmp_path):
     created_slo = _make_mock_slo("file123", "API SLO from file", "metric")
     mock_client.slos.create_slo.return_value = Mock(data=[created_slo])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["create", "-f", str(json_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -325,7 +325,7 @@ def test_slo_create_from_file(mock_client, runner, tmp_path):
 
 def test_slo_create_missing_required_metric_fields(mock_client, runner):
     """Test that metric SLO requires numerator and denominator."""
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -345,7 +345,7 @@ def test_slo_create_missing_required_metric_fields(mock_client, runner):
 
 def test_slo_create_missing_required_monitor_fields(mock_client, runner):
     """Test that monitor SLO requires monitor-ids."""
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -365,7 +365,7 @@ def test_slo_create_missing_required_monitor_fields(mock_client, runner):
 
 def test_slo_create_missing_name(mock_client, runner):
     """Test that create fails when --name is missing without -f."""
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -386,7 +386,7 @@ def test_slo_create_missing_name(mock_client, runner):
 
 def test_slo_create_missing_thresholds(mock_client, runner):
     """Test that create fails when --thresholds is missing without -f."""
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -410,7 +410,7 @@ def test_slo_create_json_output(mock_client, runner):
     created_slo = _make_mock_slo("json123", "JSON Test SLO", "metric")
     mock_client.slos.create_slo.return_value = Mock(data=[created_slo])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -445,7 +445,7 @@ def test_slo_update_with_inline_flags(mock_client, runner):
     updated_slo = _make_mock_slo("abc123", "Updated SLO", "metric")
     mock_client.slos.update_slo.return_value = Mock(data=[updated_slo])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             [
@@ -475,7 +475,7 @@ def test_slo_update_from_file(mock_client, runner, tmp_path):
     updated_slo = _make_mock_slo("abc123", "Updated from file", "metric")
     mock_client.slos.update_slo.return_value = Mock(data=[updated_slo])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["update", "abc123", "-f", str(json_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -485,7 +485,7 @@ def test_slo_update_from_file(mock_client, runner, tmp_path):
 
 def test_slo_update_no_fields(mock_client, runner):
     """Test that update fails when no fields are specified."""
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["update", "abc123"])
 
         assert result.exit_code != 0
@@ -496,7 +496,7 @@ def test_slo_update_json_output(mock_client, runner):
     updated_slo = _make_mock_slo("abc123", "JSON Update", "metric")
     mock_client.slos.update_slo.return_value = Mock(data=[updated_slo])
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             slo,
             ["update", "abc123", "--name", "JSON Update", "--format", "json"],
@@ -516,7 +516,7 @@ def test_slo_delete_with_confirm_flag(mock_client, runner):
     """Test deleting an SLO with --confirm flag (no prompt)."""
     mock_client.slos.delete_slo.return_value = Mock()
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["delete", "abc123", "--confirm"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -528,7 +528,7 @@ def test_slo_delete_interactive_confirm_yes(mock_client, runner):
     """Test deleting an SLO with interactive confirmation (user says yes)."""
     mock_client.slos.delete_slo.return_value = Mock()
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["delete", "abc123"], input="y\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -538,7 +538,7 @@ def test_slo_delete_interactive_confirm_yes(mock_client, runner):
 
 def test_slo_delete_interactive_confirm_no(mock_client, runner):
     """Test deleting an SLO with interactive confirmation (user says no)."""
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["delete", "abc123"], input="n\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -575,7 +575,7 @@ def test_slo_history_table_format(mock_client, runner):
 
     mock_client.slos.get_slo_history.return_value = mock_history
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["history", "abc123", "--from", "30d"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -595,7 +595,7 @@ def test_slo_history_json_format(mock_client, runner):
 
     mock_client.slos.get_slo_history.return_value = mock_history
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["history", "abc123", "--from", "30d", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -620,7 +620,7 @@ def test_slo_export(mock_client, runner, tmp_path):
 
     output_file = tmp_path / "slo_export.json"
 
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["export", "abc123", "-o", str(output_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -634,7 +634,7 @@ def test_slo_export(mock_client, runner, tmp_path):
 
 def test_slo_export_missing_output(mock_client, runner):
     """Test that export fails when -o is not specified."""
-    with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
         result = runner.invoke(slo, ["export", "abc123"])
 
         assert result.exit_code != 0

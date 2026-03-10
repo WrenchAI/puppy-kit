@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
 from datadog_api_client.v1.model.monitor_overall_states import MonitorOverallStates
-from ddogctl.commands.monitor import monitor
+from puppy_kit.commands.monitor import monitor
 
 
 class MockMonitor:
@@ -64,7 +64,7 @@ def test_monitor_list_state_filter(mock_client, runner):
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
     # Patch get_datadog_client to return our mock
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         # Test filtering by Alert state only
         result = runner.invoke(monitor, ["list", "--state", "Alert", "--format", "json"])
 
@@ -106,7 +106,7 @@ def test_monitor_list_no_state_filter(mock_client, runner):
 
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["list", "--format", "json"])
 
         assert result.exit_code == 0
@@ -134,7 +134,7 @@ def test_monitor_list_table_format(mock_client, runner):
 
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["list", "--format", "table"])
 
         assert result.exit_code == 0
@@ -152,7 +152,7 @@ def test_monitor_list_markdown_format(mock_client, runner):
 
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["list", "--format", "markdown"])
 
         assert result.exit_code == 0
@@ -172,7 +172,7 @@ def test_monitor_list_json_format(mock_client, runner):
 
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["list", "--format", "json"])
 
         assert result.exit_code == 0
@@ -202,7 +202,7 @@ def test_monitor_get_table_format(mock_client, runner):
 
     mock_client.monitors.get_monitor.return_value = mock_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["get", "123", "--format", "table"])
 
         assert result.exit_code == 0
@@ -220,7 +220,7 @@ def test_monitor_get_json_format(mock_client, runner):
 
     mock_client.monitors.get_monitor.return_value = mock_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["get", "456", "--format", "json"])
 
         assert result.exit_code == 0
@@ -241,7 +241,7 @@ def test_monitor_get_without_optional_fields(mock_client, runner):
 
     mock_client.monitors.get_monitor.return_value = mock_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["get", "789"])
 
         assert result.exit_code == 0
@@ -257,7 +257,7 @@ def test_monitor_mute_basic(mock_client, runner):
     """Test muting a monitor without additional options."""
     mock_client.monitors.update_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["mute", "123"])
 
         assert result.exit_code == 0
@@ -269,7 +269,7 @@ def test_monitor_mute_with_duration(mock_client, runner):
     """Test muting a monitor with a duration."""
     mock_client.monitors.update_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["mute", "123", "--duration", "3600"])
 
         assert result.exit_code == 0
@@ -282,7 +282,7 @@ def test_monitor_mute_with_scope(mock_client, runner):
     """Test muting a monitor with a specific scope."""
     mock_client.monitors.update_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["mute", "456", "--scope", "host:myhost"])
 
         assert result.exit_code == 0
@@ -294,7 +294,7 @@ def test_monitor_mute_with_duration_and_scope(mock_client, runner):
     """Test muting a monitor with both duration and scope."""
     mock_client.monitors.update_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor, ["mute", "789", "--duration", "1800", "--scope", "env:prod"]
         )
@@ -314,7 +314,7 @@ def test_monitor_unmute_basic(mock_client, runner):
     """Test unmuting a monitor without additional options."""
     mock_client.monitors.update_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["unmute", "123"])
 
         assert result.exit_code == 0
@@ -326,7 +326,7 @@ def test_monitor_unmute_with_scope(mock_client, runner):
     """Test unmuting a monitor with a specific scope."""
     mock_client.monitors.update_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["unmute", "456", "--scope", "host:myhost"])
 
         assert result.exit_code == 0
@@ -353,7 +353,7 @@ def test_monitor_validate_valid_definition(mock_client, runner):
     """Test validating a valid monitor definition."""
     mock_client.monitors.validate_monitor.return_value = MockValidationResult(has_errors=False)
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             ["validate", "--type", "metric alert", "--query", "avg:system.cpu.user{*} > 80"],
@@ -368,7 +368,7 @@ def test_monitor_validate_invalid_definition(mock_client, runner):
     """Test validating an invalid monitor definition."""
     mock_client.monitors.validate_monitor.return_value = MockValidationResult(has_errors=True)
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor, ["validate", "--type", "metric alert", "--query", "invalid query syntax"]
         )
@@ -381,7 +381,7 @@ def test_monitor_validate_invalid_definition(mock_client, runner):
 
 def test_monitor_validate_missing_required_args(mock_client, runner):
     """Test validate command without required arguments."""
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         # Missing --query
         result = runner.invoke(monitor, ["validate", "--type", "metric alert"])
         assert result.exit_code != 0
@@ -409,7 +409,7 @@ def test_monitor_workflow_list_get(mock_client, runner):
     mock_single = MockMonitor(1, "Monitor A", MonitorOverallStates.ALERT)
     mock_client.monitors.get_monitor.return_value = mock_single
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         # First list all monitors
         result = runner.invoke(monitor, ["list", "--format", "json"])
         assert result.exit_code == 0
@@ -438,7 +438,7 @@ def test_monitor_create_with_inline_flags(mock_client, runner):
     created_monitor = MockMonitor(100, "CPU Alert", MonitorOverallStates.OK)
     mock_client.monitors.create_monitor.return_value = created_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             [
@@ -478,7 +478,7 @@ def test_monitor_create_with_minimal_flags(mock_client, runner):
     created_monitor = MockMonitor(101, "Test", MonitorOverallStates.OK)
     mock_client.monitors.create_monitor.return_value = created_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             [
@@ -499,7 +499,7 @@ def test_monitor_create_with_minimal_flags(mock_client, runner):
 
 def test_monitor_create_missing_required_flags(mock_client, runner):
     """Test that create fails when required flags are missing."""
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         # Missing --type
         result = runner.invoke(
             monitor,
@@ -538,7 +538,7 @@ def test_monitor_create_from_file(mock_client, runner, tmp_path):
     created_monitor = MockMonitor(102, "High CPU from file", MonitorOverallStates.OK)
     mock_client.monitors.create_monitor.return_value = created_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["create", "-f", str(json_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -559,7 +559,7 @@ def test_monitor_create_from_file_overrides_flags(mock_client, runner, tmp_path)
     created_monitor = MockMonitor(103, "Memory from file", MonitorOverallStates.OK)
     mock_client.monitors.create_monitor.return_value = created_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             [
@@ -587,7 +587,7 @@ def test_monitor_create_from_invalid_file(mock_client, runner, tmp_path):
     json_file = tmp_path / "bad.json"
     json_file.write_text("not valid json {{{")
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["create", "-f", str(json_file)])
 
         assert result.exit_code != 0
@@ -595,7 +595,7 @@ def test_monitor_create_from_invalid_file(mock_client, runner, tmp_path):
 
 def test_monitor_create_from_nonexistent_file(mock_client, runner):
     """Test creating a monitor from a file that doesn't exist."""
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["create", "-f", "/nonexistent/path.json"])
 
         assert result.exit_code != 0
@@ -606,7 +606,7 @@ def test_monitor_create_json_output(mock_client, runner):
     created_monitor = MockMonitor(104, "JSON Test", MonitorOverallStates.OK)
     mock_client.monitors.create_monitor.return_value = created_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             [
@@ -638,7 +638,7 @@ def test_monitor_update_with_inline_flags(mock_client, runner):
     updated_monitor = MockMonitor(200, "Updated CPU Alert", MonitorOverallStates.OK)
     mock_client.monitors.update_monitor.return_value = updated_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             [
@@ -671,7 +671,7 @@ def test_monitor_update_partial_flags(mock_client, runner):
     updated_monitor = MockMonitor(201, "Partially Updated", MonitorOverallStates.OK)
     mock_client.monitors.update_monitor.return_value = updated_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             ["update", "201", "--name", "Partially Updated"],
@@ -694,7 +694,7 @@ def test_monitor_update_from_file(mock_client, runner, tmp_path):
     updated_monitor = MockMonitor(202, "Updated from file", MonitorOverallStates.OK)
     mock_client.monitors.update_monitor.return_value = updated_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["update", "202", "-f", str(json_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -707,7 +707,7 @@ def test_monitor_update_json_output(mock_client, runner):
     updated_monitor = MockMonitor(203, "JSON Update", MonitorOverallStates.OK)
     mock_client.monitors.update_monitor.return_value = updated_monitor
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             monitor,
             ["update", "203", "--name", "JSON Update", "--format", "json"],
@@ -727,7 +727,7 @@ def test_monitor_delete_with_confirm_flag(mock_client, runner):
     """Test deleting a monitor with --confirm flag (no prompt)."""
     mock_client.monitors.delete_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["delete", "300", "--confirm"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -739,7 +739,7 @@ def test_monitor_delete_interactive_confirm_yes(mock_client, runner):
     """Test deleting a monitor with interactive confirmation (user says yes)."""
     mock_client.monitors.delete_monitor.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["delete", "301"], input="y\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -749,7 +749,7 @@ def test_monitor_delete_interactive_confirm_yes(mock_client, runner):
 
 def test_monitor_delete_interactive_confirm_no(mock_client, runner):
     """Test deleting a monitor with interactive confirmation (user says no)."""
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["delete", "302"], input="n\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -769,7 +769,7 @@ def test_monitor_mute_all(mock_client, runner):
     mock_client.downtimes = Mock()
     mock_client.downtimes.create_downtime.return_value = mock_downtime
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["mute-all"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -789,7 +789,7 @@ def test_monitor_mute_all_with_message(mock_client, runner):
     mock_client.downtimes = Mock()
     mock_client.downtimes.create_downtime.return_value = mock_downtime
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["mute-all", "--message", "Maintenance window"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -824,7 +824,7 @@ def test_monitor_unmute_all(mock_client, runner):
     ]
     mock_client.downtimes.cancel_downtime.return_value = Mock()
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["unmute-all"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -838,7 +838,7 @@ def test_monitor_unmute_all_no_global_downtimes(mock_client, runner):
     mock_client.downtimes = Mock()
     mock_client.downtimes.list_downtimes.return_value = []
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(monitor, ["unmute-all"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -858,8 +858,8 @@ def test_monitor_list_watch_flag_accepted(mock_client, runner):
     ]
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
-        with patch("ddogctl.commands.monitor.watch_loop"):
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.watch_loop"):
             result = runner.invoke(monitor, ["list", "--watch"])
 
             # Should not fail with unrecognized option
@@ -873,8 +873,8 @@ def test_monitor_list_watch_with_interval(mock_client, runner):
     ]
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
-        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.watch_loop") as mock_watch:
             result = runner.invoke(monitor, ["list", "--watch", "--interval", "10"])
 
             assert result.exit_code == 0
@@ -891,8 +891,8 @@ def test_monitor_list_watch_calls_watch_loop(mock_client, runner):
     ]
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
-        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.watch_loop") as mock_watch:
             result = runner.invoke(monitor, ["list", "--watch"])
 
             assert result.exit_code == 0
@@ -909,8 +909,8 @@ def test_monitor_list_watch_default_interval(mock_client, runner):
     ]
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
-        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.watch_loop") as mock_watch:
             result = runner.invoke(monitor, ["list", "--watch"])
 
             assert result.exit_code == 0
@@ -925,8 +925,8 @@ def test_monitor_list_without_watch_runs_normally(mock_client, runner):
     ]
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
-        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.watch_loop") as mock_watch:
             result = runner.invoke(monitor, ["list", "--format", "table"])
 
             assert result.exit_code == 0
@@ -943,8 +943,8 @@ def test_monitor_list_watch_with_state_filter(mock_client, runner):
     ]
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
-        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.watch_loop") as mock_watch:
             result = runner.invoke(monitor, ["list", "--state", "Alert", "--watch"])
 
             assert result.exit_code == 0
@@ -958,8 +958,8 @@ def test_monitor_list_interval_without_watch(mock_client, runner):
     ]
     mock_client.monitors.list_monitors.return_value = mock_monitors
 
-    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
-        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.watch_loop") as mock_watch:
             result = runner.invoke(monitor, ["list", "--interval", "10", "--format", "table"])
 
             assert result.exit_code == 0

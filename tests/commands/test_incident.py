@@ -2,7 +2,7 @@
 
 import json
 from unittest.mock import Mock, patch
-from ddogctl.commands.incident import incident
+from puppy_kit.commands.incident import incident
 
 
 def _make_incident(
@@ -33,7 +33,7 @@ class TestListIncidents:
         response = Mock(data=incidents)
         mock_client.incidents.list_incidents.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -52,7 +52,7 @@ class TestListIncidents:
         response = Mock(data=incidents)
         mock_client.incidents.list_incidents.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -69,7 +69,7 @@ class TestListIncidents:
         response = Mock(data=[])
         mock_client.incidents.list_incidents.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -83,7 +83,7 @@ class TestGetIncident:
         response = Mock(data=inc)
         mock_client.incidents.get_incident.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["get", "inc-1"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -99,7 +99,7 @@ class TestGetIncident:
         response = Mock(data=inc)
         mock_client.incidents.get_incident.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -117,7 +117,7 @@ class TestCreateIncident:
         response = Mock(data=inc)
         mock_client.incidents.create_incident.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 incident, ["create", "--title", "New outage", "--severity", "SEV-2"]
             )
@@ -134,7 +134,7 @@ class TestCreateIncident:
         response = Mock(data=inc)
         mock_client.incidents.create_incident.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 incident,
                 ["create", "--title", "New outage", "--severity", "SEV-2", "--format", "json"],
@@ -165,7 +165,7 @@ class TestUpdateIncident:
         response = Mock(data=inc)
         mock_client.incidents.update_incident.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 incident, ["update", "inc-1", "--title", "Updated title", "--status", "stable"]
             )
@@ -182,7 +182,7 @@ class TestUpdateIncident:
         response = Mock(data=inc)
         mock_client.incidents.update_incident.return_value = response
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["update", "inc-1", "--severity", "SEV-2"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -200,7 +200,7 @@ class TestDeleteIncident:
         """Test deleting an incident with --confirm flag."""
         mock_client.incidents.delete_incident.return_value = None
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["delete", "inc-1", "--confirm"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -212,7 +212,7 @@ class TestDeleteIncident:
         """Test deleting an incident with interactive confirmation (user says yes)."""
         mock_client.incidents.delete_incident.return_value = None
 
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["delete", "inc-1"], input="y\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -221,7 +221,7 @@ class TestDeleteIncident:
 
     def test_delete_incident_without_confirm(self, mock_client, runner):
         """Test that delete is aborted when user declines confirmation."""
-        with patch("ddogctl.commands.incident.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["delete", "inc-1"], input="n\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"

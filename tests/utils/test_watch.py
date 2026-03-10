@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-from ddogctl.utils.watch import watch_loop
+from puppy_kit.utils.watch import watch_loop
 
 
 def test_watch_loop_calls_render_func():
@@ -10,7 +10,7 @@ def test_watch_loop_calls_render_func():
     render_func = Mock(return_value="test output")
 
     # Make time.sleep raise KeyboardInterrupt to exit the loop after first iteration
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
         watch_loop(render_func, interval=30)
 
     render_func.assert_called_once()
@@ -20,8 +20,8 @@ def test_watch_loop_uses_live_display():
     """Test that watch_loop uses Rich Live for display."""
     render_func = Mock(return_value="test output")
 
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
-        with patch("ddogctl.utils.watch.Live") as mock_live_class:
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
+        with patch("puppy_kit.utils.watch.Live") as mock_live_class:
             mock_live = Mock()
             mock_live_class.return_value.__enter__ = Mock(return_value=mock_live)
             mock_live_class.return_value.__exit__ = Mock(return_value=False)
@@ -36,7 +36,7 @@ def test_watch_loop_sleeps_for_interval():
     """Test that watch_loop sleeps for the specified interval."""
     render_func = Mock(return_value="test output")
 
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=KeyboardInterrupt) as mock_sleep:
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=KeyboardInterrupt) as mock_sleep:
         watch_loop(render_func, interval=10)
 
     mock_sleep.assert_called_once_with(10)
@@ -46,7 +46,7 @@ def test_watch_loop_default_interval():
     """Test that watch_loop defaults to 30 second interval."""
     render_func = Mock(return_value="test output")
 
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=KeyboardInterrupt) as mock_sleep:
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=KeyboardInterrupt) as mock_sleep:
         watch_loop(render_func)
 
     mock_sleep.assert_called_once_with(30)
@@ -56,7 +56,7 @@ def test_watch_loop_handles_keyboard_interrupt():
     """Test that watch_loop exits cleanly on KeyboardInterrupt."""
     render_func = Mock(return_value="test output")
 
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
         # Should not raise an exception
         watch_loop(render_func, interval=5)
 
@@ -73,7 +73,7 @@ def test_watch_loop_multiple_iterations():
             raise KeyboardInterrupt
         return None
 
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=sleep_side_effect):
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=sleep_side_effect):
         watch_loop(render_func, interval=5)
 
     # Should be called 3 times (initial + 2 more before KeyboardInterrupt on 3rd sleep)
@@ -84,7 +84,7 @@ def test_watch_loop_clamps_minimum_interval():
     """Test that watch_loop clamps interval to minimum 1 second."""
     render_func = Mock(return_value="test output")
 
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=KeyboardInterrupt) as mock_sleep:
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=KeyboardInterrupt) as mock_sleep:
         watch_loop(render_func, interval=0)
 
     mock_sleep.assert_called_once_with(1)
@@ -95,8 +95,8 @@ def test_watch_loop_accepts_custom_console():
     render_func = Mock(return_value="test output")
     custom_console = Mock()
 
-    with patch("ddogctl.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
-        with patch("ddogctl.utils.watch.Live") as mock_live_class:
+    with patch("puppy_kit.utils.watch.time.sleep", side_effect=KeyboardInterrupt):
+        with patch("puppy_kit.utils.watch.Live") as mock_live_class:
             mock_live = Mock()
             mock_live_class.return_value.__enter__ = Mock(return_value=mock_live)
             mock_live_class.return_value.__exit__ = Mock(return_value=False)

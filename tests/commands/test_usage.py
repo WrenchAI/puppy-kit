@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 def test_usage_summary_table(mock_client, runner):
     """Test usage summary in table format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     mock_response = Mock()
     mock_response.start_date = "2024-01-01"
@@ -21,7 +21,7 @@ def test_usage_summary_table(mock_client, runner):
 
     mock_client.usage.get_usage_summary.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["summary", "--from", "2024-01-01", "--to", "2024-01-07"])
 
     assert result.exit_code == 0
@@ -35,7 +35,7 @@ def test_usage_summary_table(mock_client, runner):
 
 def test_usage_summary_json(mock_client, runner):
     """Test usage summary in JSON format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     mock_response = Mock()
     mock_response.start_date = "2024-01-01"
@@ -49,7 +49,7 @@ def test_usage_summary_json(mock_client, runner):
 
     mock_client.usage.get_usage_summary.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             usage, ["summary", "--from", "2024-01-01", "--to", "2024-01-07", "--format", "json"]
         )
@@ -66,13 +66,13 @@ def test_usage_summary_json(mock_client, runner):
 
 def test_usage_summary_empty(mock_client, runner):
     """Test usage summary with no data."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     mock_response = Mock(spec=[])
 
     mock_client.usage.get_usage_summary.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["summary", "--from", "2024-01-01", "--to", "2024-01-07"])
 
     assert result.exit_code == 0
@@ -81,7 +81,7 @@ def test_usage_summary_empty(mock_client, runner):
 
 def test_usage_hosts_table(mock_client, runner):
     """Test host usage in table format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     entry1 = Mock()
     entry1.hour = datetime(2024, 1, 7, 10, 0, 0)
@@ -100,7 +100,7 @@ def test_usage_hosts_table(mock_client, runner):
 
     mock_client.usage.get_usage_hosts.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["hosts", "--from", "24h", "--to", "now"])
 
     assert result.exit_code == 0
@@ -113,7 +113,7 @@ def test_usage_hosts_table(mock_client, runner):
 
 def test_usage_hosts_json(mock_client, runner):
     """Test host usage in JSON format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     entry1 = Mock()
     entry1.hour = datetime(2024, 1, 7, 10, 0, 0)
@@ -126,7 +126,7 @@ def test_usage_hosts_json(mock_client, runner):
 
     mock_client.usage.get_usage_hosts.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["hosts", "--from", "24h", "--format", "json"])
 
     assert result.exit_code == 0
@@ -139,7 +139,7 @@ def test_usage_hosts_json(mock_client, runner):
 
 def test_usage_logs_table(mock_client, runner):
     """Test log usage in table format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     entry1 = Mock()
     entry1.hour = datetime(2024, 1, 7, 10, 0, 0)
@@ -156,7 +156,7 @@ def test_usage_logs_table(mock_client, runner):
 
     mock_client.usage.get_usage_logs.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["logs", "--from", "24h", "--to", "now"])
 
     assert result.exit_code == 0
@@ -168,7 +168,7 @@ def test_usage_logs_table(mock_client, runner):
 
 def test_usage_logs_json(mock_client, runner):
     """Test log usage in JSON format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     entry1 = Mock()
     entry1.hour = datetime(2024, 1, 7, 10, 0, 0)
@@ -180,7 +180,7 @@ def test_usage_logs_json(mock_client, runner):
 
     mock_client.usage.get_usage_logs.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["logs", "--from", "24h", "--format", "json"])
 
     assert result.exit_code == 0
@@ -192,7 +192,7 @@ def test_usage_logs_json(mock_client, runner):
 
 def test_usage_top_avg_metrics_table(mock_client, runner):
     """Test top average metrics in table format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     entry1 = Mock()
     entry1.metric_name = "system.cpu.user"
@@ -211,7 +211,7 @@ def test_usage_top_avg_metrics_table(mock_client, runner):
 
     mock_client.usage.get_usage_top_avg_metrics.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["top-avg-metrics", "--month", "2024-01"])
 
     assert result.exit_code == 0
@@ -226,7 +226,7 @@ def test_usage_top_avg_metrics_table(mock_client, runner):
 
 def test_usage_top_avg_metrics_json(mock_client, runner):
     """Test top average metrics in JSON format."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     entry1 = Mock()
     entry1.metric_name = "system.cpu.user"
@@ -239,7 +239,7 @@ def test_usage_top_avg_metrics_json(mock_client, runner):
 
     mock_client.usage.get_usage_top_avg_metrics.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["top-avg-metrics", "--month", "2024-01", "--format", "json"])
 
     assert result.exit_code == 0
@@ -253,14 +253,14 @@ def test_usage_top_avg_metrics_json(mock_client, runner):
 
 def test_usage_hosts_empty(mock_client, runner):
     """Test host usage with no data."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     mock_response = Mock()
     mock_response.usage = []
 
     mock_client.usage.get_usage_hosts.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["hosts", "--from", "24h"])
 
     assert result.exit_code == 0
@@ -269,14 +269,14 @@ def test_usage_hosts_empty(mock_client, runner):
 
 def test_usage_logs_empty(mock_client, runner):
     """Test log usage with no data."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     mock_response = Mock()
     mock_response.usage = []
 
     mock_client.usage.get_usage_logs.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["logs", "--from", "24h"])
 
     assert result.exit_code == 0
@@ -285,14 +285,14 @@ def test_usage_logs_empty(mock_client, runner):
 
 def test_usage_top_avg_metrics_default_month(mock_client, runner):
     """Test top average metrics defaults to current month."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     mock_response = Mock()
     mock_response.usage = []
 
     mock_client.usage.get_usage_top_avg_metrics.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["top-avg-metrics"])
 
     assert result.exit_code == 0
@@ -308,7 +308,7 @@ def test_usage_top_avg_metrics_default_month(mock_client, runner):
 
 def test_usage_summary_relative_dates(mock_client, runner):
     """Test summary command with relative date format (e.g., 30d)."""
-    from ddogctl.commands.usage import usage
+    from puppy_kit.commands.usage import usage
 
     mock_response = Mock()
     mock_response.apm_host_top99p = 10
@@ -320,7 +320,7 @@ def test_usage_summary_relative_dates(mock_client, runner):
 
     mock_client.usage.get_usage_summary.return_value = mock_response
 
-    with patch("ddogctl.commands.usage.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.usage.get_datadog_client", return_value=mock_client):
         result = runner.invoke(usage, ["summary", "--from", "30d"])
 
     assert result.exit_code == 0

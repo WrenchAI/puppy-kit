@@ -5,7 +5,7 @@ import time
 import pytest
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from ddogctl.commands.downtime import downtime, parse_downtime_time
+from puppy_kit.commands.downtime import downtime, parse_downtime_time
 
 # ============================================================================
 # parse_downtime_time Tests
@@ -108,7 +108,7 @@ class TestDowntimeList:
         ]
         mock_client.downtimes.list_downtimes.return_value = downtimes
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -123,7 +123,7 @@ class TestDowntimeList:
         ]
         mock_client.downtimes.list_downtimes.return_value = downtimes
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -138,7 +138,7 @@ class TestDowntimeList:
         ]
         mock_client.downtimes.list_downtimes.return_value = downtimes
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["list", "--current-only"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -148,7 +148,7 @@ class TestDowntimeList:
         """Test listing all downtimes (no current_only flag)."""
         mock_client.downtimes.list_downtimes.return_value = []
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["list"])
 
         assert result.exit_code == 0
@@ -158,7 +158,7 @@ class TestDowntimeList:
         """Test listing when no downtimes exist."""
         mock_client.downtimes.list_downtimes.return_value = []
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["list"])
 
         assert result.exit_code == 0
@@ -196,7 +196,7 @@ class TestDowntimeGet:
 
         mock_client.downtimes.get_downtime.return_value = dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["get", "123"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -229,7 +229,7 @@ class TestDowntimeGet:
 
         mock_client.downtimes.get_downtime.return_value = dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["get", "456", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -264,7 +264,7 @@ class TestDowntimeCreate:
         created_dt.message = "Deploying v2.5"
         mock_client.downtimes.create_downtime.return_value = created_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -292,7 +292,7 @@ class TestDowntimeCreate:
         created_dt.message = "Monitor-specific downtime"
         mock_client.downtimes.create_downtime.return_value = created_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -320,7 +320,7 @@ class TestDowntimeCreate:
 
     def test_create_missing_scope(self, mock_client, runner):
         """Test that create fails when --scope is missing and no file provided."""
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -351,7 +351,7 @@ class TestDowntimeCreate:
         created_dt.message = "From file"
         mock_client.downtimes.create_downtime.return_value = created_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["create", "-f", str(json_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -375,7 +375,7 @@ class TestDowntimeCreate:
         created_dt.message = "File wins"
         mock_client.downtimes.create_downtime.return_value = created_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -409,7 +409,7 @@ class TestDowntimeCreate:
         )
         mock_client.downtimes.create_downtime.return_value = created_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -439,7 +439,7 @@ class TestDowntimeCreate:
         created_dt.message = ""
         mock_client.downtimes.create_downtime.return_value = created_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -485,7 +485,7 @@ class TestDowntimeUpdate:
         updated_dt.message = "Extended maintenance"
         mock_client.downtimes.update_downtime.return_value = updated_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -514,7 +514,7 @@ class TestDowntimeUpdate:
         updated_dt.message = "New message"
         mock_client.downtimes.update_downtime.return_value = updated_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -530,7 +530,7 @@ class TestDowntimeUpdate:
 
     def test_update_no_fields_errors(self, mock_client, runner):
         """Test that update without any fields gives an error."""
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["update", "202"])
 
         assert result.exit_code != 0
@@ -548,7 +548,7 @@ class TestDowntimeUpdate:
         )
         mock_client.downtimes.update_downtime.return_value = updated_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -573,7 +573,7 @@ class TestDowntimeUpdate:
         updated_dt.message = ""
         mock_client.downtimes.update_downtime.return_value = updated_dt
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [
@@ -610,7 +610,7 @@ class TestDowntimeDelete:
         """Test deleting a downtime with --confirm flag (no prompt)."""
         mock_client.downtimes.cancel_downtime.return_value = None
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["delete", "300", "--confirm"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -621,7 +621,7 @@ class TestDowntimeDelete:
         """Test deleting a downtime with interactive confirmation (user says yes)."""
         mock_client.downtimes.cancel_downtime.return_value = None
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["delete", "301"], input="y\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -630,7 +630,7 @@ class TestDowntimeDelete:
 
     def test_delete_interactive_confirm_no(self, mock_client, runner):
         """Test deleting a downtime with interactive confirmation (user says no)."""
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["delete", "302"], input="n\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -662,7 +662,7 @@ class TestDowntimeCancelByScope:
         cancel_result.cancelled_ids = [1, 2, 3]
         mock_client.downtimes.cancel_downtimes_by_scope.return_value = cancel_result
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["cancel-by-scope", "env:prod", "--confirm"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -675,7 +675,7 @@ class TestDowntimeCancelByScope:
         cancel_result.cancelled_ids = [10]
         mock_client.downtimes.cancel_downtimes_by_scope.return_value = cancel_result
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["cancel-by-scope", "env:staging"], input="y\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -683,7 +683,7 @@ class TestDowntimeCancelByScope:
 
     def test_cancel_by_scope_interactive_confirm_no(self, mock_client, runner):
         """Test cancel-by-scope with interactive confirmation (user says no)."""
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(downtime, ["cancel-by-scope", "env:prod"], input="n\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -696,7 +696,7 @@ class TestDowntimeCancelByScope:
         cancel_result.cancelled_ids = [5, 6]
         mock_client.downtimes.cancel_downtimes_by_scope.return_value = cancel_result
 
-        with patch("ddogctl.commands.downtime.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 downtime,
                 [

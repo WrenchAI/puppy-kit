@@ -2,7 +2,7 @@
 
 import json
 
-from ddogctl.utils.export import export_to_json
+from puppy_kit.utils.export import export_to_json
 
 
 class TestExportToJson:

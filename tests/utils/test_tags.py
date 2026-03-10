@@ -1,6 +1,6 @@
 """Tests for tag processing utilities."""
 
-from ddogctl.utils.tags import parse_tags, format_tags_for_display
+from puppy_kit.utils.tags import parse_tags, format_tags_for_display
 
 
 class TestParseTags:

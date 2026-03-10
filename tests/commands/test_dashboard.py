@@ -4,7 +4,7 @@ import json
 import pytest
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from ddogctl.commands.dashboard import dashboard
+from puppy_kit.commands.dashboard import dashboard
 
 
 @pytest.fixture
@@ -115,7 +115,7 @@ def test_dashboard_list_table_format(mock_client, runner):
     response = MockDashboardListResponse(mock_dashboards)
     mock_client.dashboards.list_dashboards.return_value = response
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -134,7 +134,7 @@ def test_dashboard_list_json_format(mock_client, runner):
     response = MockDashboardListResponse(mock_dashboards)
     mock_client.dashboards.list_dashboards.return_value = response
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -151,7 +151,7 @@ def test_dashboard_list_empty(mock_client, runner):
     response = MockDashboardListResponse([])
     mock_client.dashboards.list_dashboards.return_value = response
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["list"])
 
         assert result.exit_code == 0
@@ -166,7 +166,7 @@ def test_dashboard_list_with_tags_filter(mock_client, runner):
     response = MockDashboardListResponse(mock_dashboards)
     mock_client.dashboards.list_dashboards.return_value = response
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["list", "--tags", "env:prod"])
 
         assert result.exit_code == 0
@@ -193,7 +193,7 @@ def test_dashboard_get_table_format(mock_client, runner):
     )
     mock_client.dashboards.get_dashboard.return_value = mock_dash
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["get", "abc-123"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -209,7 +209,7 @@ def test_dashboard_get_json_format(mock_client, runner):
     mock_dash = MockDashboard("def-456", "Staging Metrics", "free")
     mock_client.dashboards.get_dashboard.return_value = mock_dash
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["get", "def-456", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -237,7 +237,7 @@ def test_dashboard_create_from_file(mock_client, runner, tmp_path):
     created = MockDashboard("new-123", "New Dashboard")
     mock_client.dashboards.create_dashboard.return_value = created
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["create", "-f", str(json_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -251,7 +251,7 @@ def test_dashboard_create_with_inline_flags(mock_client, runner):
     created = MockDashboard("inline-123", "My Dashboard", "ordered")
     mock_client.dashboards.create_dashboard.return_value = created
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             dashboard,
             [
@@ -273,7 +273,7 @@ def test_dashboard_create_with_inline_flags(mock_client, runner):
 
 def test_dashboard_create_missing_required(mock_client, runner):
     """Test that create fails when no file and no title provided."""
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["create"])
 
         assert result.exit_code != 0
@@ -292,7 +292,7 @@ def test_dashboard_create_from_file_overrides_flags(mock_client, runner, tmp_pat
     created = MockDashboard("file-123", "From File", "free")
     mock_client.dashboards.create_dashboard.return_value = created
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             dashboard,
             ["create", "-f", str(json_file), "--title", "Ignored Title"],
@@ -310,7 +310,7 @@ def test_dashboard_create_from_invalid_file(mock_client, runner, tmp_path):
     json_file = tmp_path / "bad.json"
     json_file.write_text("not valid json {{{")
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["create", "-f", str(json_file)])
 
         assert result.exit_code != 0
@@ -321,7 +321,7 @@ def test_dashboard_create_json_output(mock_client, runner):
     created = MockDashboard("json-123", "JSON Dashboard")
     mock_client.dashboards.create_dashboard.return_value = created
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             dashboard,
             [
@@ -359,7 +359,7 @@ def test_dashboard_update_from_file(mock_client, runner, tmp_path):
     updated = MockDashboard("abc-123", "Updated Dashboard")
     mock_client.dashboards.update_dashboard.return_value = updated
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["update", "abc-123", "-f", str(json_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -372,7 +372,7 @@ def test_dashboard_update_from_file(mock_client, runner, tmp_path):
 
 def test_dashboard_update_missing_file(mock_client, runner):
     """Test that update fails when no file is provided."""
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["update", "abc-123"])
 
         assert result.exit_code != 0
@@ -387,7 +387,7 @@ def test_dashboard_update_json_output(mock_client, runner, tmp_path):
     updated = MockDashboard("abc-123", "Updated")
     mock_client.dashboards.update_dashboard.return_value = updated
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             dashboard, ["update", "abc-123", "-f", str(json_file), "--format", "json"]
         )
@@ -406,7 +406,7 @@ def test_dashboard_delete_with_confirm_flag(mock_client, runner):
     """Test deleting a dashboard with --confirm flag (no prompt)."""
     mock_client.dashboards.delete_dashboard.return_value = Mock()
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["delete", "abc-123", "--confirm"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -419,7 +419,7 @@ def test_dashboard_delete_interactive_confirm_yes(mock_client, runner):
     """Test deleting a dashboard with interactive confirmation (user says yes)."""
     mock_client.dashboards.delete_dashboard.return_value = Mock()
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["delete", "abc-123"], input="y\n")
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -429,7 +429,7 @@ def test_dashboard_delete_interactive_confirm_yes(mock_client, runner):
 
 def test_dashboard_delete_interactive_confirm_no(mock_client, runner):
     """Test deleting a dashboard with interactive confirmation (user says no)."""
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["delete", "abc-123"], input="n\n")
 
         assert result.exit_code == 0
@@ -454,7 +454,7 @@ def test_dashboard_export(mock_client, runner, tmp_path):
 
     output_file = tmp_path / "exported.json"
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["export", "abc-123", "-o", str(output_file)])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -470,7 +470,7 @@ def test_dashboard_export(mock_client, runner, tmp_path):
 
 def test_dashboard_export_missing_output(mock_client, runner):
     """Test that export fails when -o is not provided."""
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["export", "abc-123"])
 
         assert result.exit_code != 0
@@ -497,7 +497,7 @@ def test_dashboard_clone(mock_client, runner):
     cloned = MockDashboard("cloned-456", "Copy of Production Overview")
     mock_client.dashboards.create_dashboard.return_value = cloned
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             dashboard, ["clone", "abc-123", "--title", "Copy of Production Overview"]
         )
@@ -518,7 +518,7 @@ def test_dashboard_clone(mock_client, runner):
 
 def test_dashboard_clone_missing_title(mock_client, runner):
     """Test that clone fails when --title is not provided."""
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["clone", "abc-123"])
 
         assert result.exit_code != 0
@@ -537,7 +537,7 @@ def test_dashboard_clone_json_output(mock_client, runner):
     cloned = MockDashboard("cloned-789", "Cloned Dashboard")
     mock_client.dashboards.create_dashboard.return_value = cloned
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             dashboard,
             ["clone", "abc-123", "--title", "Cloned Dashboard", "--format", "json"],
@@ -568,7 +568,7 @@ def test_dashboard_list_then_get_workflow(mock_client, runner):
     mock_dash = MockDashboard("abc-123", "Dashboard A", "ordered")
     mock_client.dashboards.get_dashboard.return_value = mock_dash
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         # List dashboards
         result = runner.invoke(dashboard, ["list", "--format", "json"])
         assert result.exit_code == 0
@@ -594,7 +594,7 @@ def test_dashboard_export_modify_update_workflow(mock_client, runner, tmp_path):
     mock_client.dashboards.get_dashboard.return_value = original
 
     export_file = tmp_path / "dashboard.json"
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["export", "abc-123", "-o", str(export_file)])
         assert result.exit_code == 0
 
@@ -607,7 +607,7 @@ def test_dashboard_export_modify_update_workflow(mock_client, runner, tmp_path):
     updated = MockDashboard("abc-123", "Modified Title")
     mock_client.dashboards.update_dashboard.return_value = updated
 
-    with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dashboard, ["update", "abc-123", "-f", str(export_file)])
         assert result.exit_code == 0
         assert "updated" in result.output.lower()

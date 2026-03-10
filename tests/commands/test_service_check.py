@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from ddogctl.commands.service_check import service_check
+from puppy_kit.commands.service_check import service_check
 
 
 class TestServiceCheckPost:
@@ -15,7 +15,7 @@ class TestServiceCheckPost:
 
     def _invoke(self, args):
         with patch(
-            "ddogctl.commands.service_check.get_datadog_client",
+            "puppy_kit.commands.service_check.get_datadog_client",
             return_value=self.mock_client,
         ):
             return self.runner.invoke(service_check, args)

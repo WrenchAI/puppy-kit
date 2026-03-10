@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ddogctl.utils.output import emit_error, get_output_format, set_output_format
+from puppy_kit.utils.output import emit_error, get_output_format, set_output_format
 
 
 @pytest.fixture(autouse=True)

@@ -2,7 +2,7 @@
 
 from unittest.mock import patch, Mock
 from click.testing import CliRunner
-from ddogctl.cli import main
+from puppy_kit.cli import main
 
 
 class TestAliasResolution:
@@ -46,7 +46,7 @@ class TestAliasSubcommands:
     def test_mon_list_works(self):
         """mon list should invoke monitor list."""
         runner = CliRunner()
-        with patch("ddogctl.commands.monitor.get_datadog_client") as mock_get:
+        with patch("puppy_kit.commands.monitor.get_datadog_client") as mock_get:
             mock_client = Mock()
             mock_client.monitors = Mock()
             mock_client.monitors.list_monitors.return_value = []

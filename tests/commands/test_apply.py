@@ -5,7 +5,7 @@ import os
 import pytest
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from ddogctl.commands.apply import apply_cmd, diff_cmd, detect_resource_type
+from puppy_kit.commands.apply import apply_cmd, diff_cmd, detect_resource_type
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ class TestApplyCommand:
 
     # --- Monitor apply ---
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_create_monitor(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         created_monitor = Mock()
@@ -150,7 +150,7 @@ class TestApplyCommand:
         assert "12345" in result.output
         mock_client.monitors.create_monitor.assert_called_once()
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_update_monitor(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         updated_monitor = Mock()
@@ -178,7 +178,7 @@ class TestApplyCommand:
 
     # --- Dashboard apply ---
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_create_dashboard(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         created = Mock()
@@ -199,7 +199,7 @@ class TestApplyCommand:
         assert "abc-def-123" in result.output
         mock_client.dashboards.create_dashboard.assert_called_once()
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_update_dashboard(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         updated = Mock()
@@ -221,7 +221,7 @@ class TestApplyCommand:
 
     # --- SLO apply ---
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_create_slo(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         created = Mock()
@@ -247,7 +247,7 @@ class TestApplyCommand:
         assert "slo" in result.output.lower()
         mock_client.slos.create_slo.assert_called_once()
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_update_slo(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         updated = Mock()
@@ -276,7 +276,7 @@ class TestApplyCommand:
 
     # --- Downtime apply ---
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_create_downtime(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         created = Mock()
@@ -296,7 +296,7 @@ class TestApplyCommand:
         assert "downtime" in result.output.lower()
         mock_client.downtimes.create_downtime.assert_called_once()
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_update_downtime(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         updated = Mock()
@@ -368,7 +368,7 @@ class TestApplyCommand:
 
     # --- Recursive directory scanning ---
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_recursive_directory(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
 
@@ -459,7 +459,7 @@ class TestDiffCommand:
         assert result.exit_code != 0
         assert "id" in result.output.lower()
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_diff_monitor_shows_differences(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         live_monitor = Mock()
@@ -487,7 +487,7 @@ class TestDiffCommand:
         # Should show differences between local and live
         assert "CPU Alert Updated" in result.output or "---" in result.output
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_diff_monitor_no_differences(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         live_data = {
@@ -508,7 +508,7 @@ class TestDiffCommand:
         assert result.exit_code == 0
         assert "no differences" in result.output.lower() or "identical" in result.output.lower()
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_diff_dashboard(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         live_dash = Mock()
@@ -535,7 +535,7 @@ class TestDiffCommand:
         assert result.exit_code == 0
         mock_client.dashboards.get_dashboard.assert_called_once_with("abc-123")
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_diff_slo(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         live_slo = Mock()
@@ -564,7 +564,7 @@ class TestDiffCommand:
         assert result.exit_code == 0
         mock_client.slos.get_slo.assert_called_once_with("slo-abc")
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_diff_downtime(self, mock_get_client, mock_client, runner):
         mock_get_client.return_value = mock_client
         live_dt = Mock()
@@ -599,14 +599,14 @@ class TestApplyCliRegistration:
     """Tests that apply and diff are registered as top-level commands."""
 
     def test_apply_registered_on_main(self, runner):
-        from ddogctl.cli import main
+        from puppy_kit.cli import main
 
         result = runner.invoke(main, ["apply", "--help"])
         assert result.exit_code == 0
         assert "apply" in result.output.lower() or "--file" in result.output.lower()
 
     def test_diff_registered_on_main(self, runner):
-        from ddogctl.cli import main
+        from puppy_kit.cli import main
 
         result = runner.invoke(main, ["diff", "--help"])
         assert result.exit_code == 0

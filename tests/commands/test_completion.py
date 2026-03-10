@@ -1,7 +1,7 @@
 """Tests for completion commands."""
 
 from click.testing import CliRunner
-from ddogctl.cli import main
+from puppy_kit.cli import main
 
 
 class TestCompletionBash:
@@ -11,8 +11,8 @@ class TestCompletionBash:
         runner = CliRunner()
         result = runner.invoke(main, ["completion", "bash"])
         assert result.exit_code == 0
-        assert "_DDOGCTL_COMPLETE=bash_source" in result.output
-        assert "ddogctl" in result.output
+        assert "_PUPPY_COMPLETE=bash_source" in result.output
+        assert "puppy" in result.output
 
     def test_bash_outputs_eval_wrapper(self):
         runner = CliRunner()
@@ -28,8 +28,8 @@ class TestCompletionZsh:
         runner = CliRunner()
         result = runner.invoke(main, ["completion", "zsh"])
         assert result.exit_code == 0
-        assert "_DDOGCTL_COMPLETE=zsh_source" in result.output
-        assert "ddogctl" in result.output
+        assert "_PUPPY_COMPLETE=zsh_source" in result.output
+        assert "puppy" in result.output
 
     def test_zsh_outputs_eval_wrapper(self):
         runner = CliRunner()
@@ -45,8 +45,8 @@ class TestCompletionFish:
         runner = CliRunner()
         result = runner.invoke(main, ["completion", "fish"])
         assert result.exit_code == 0
-        assert "_DDOGCTL_COMPLETE=fish_source" in result.output
-        assert "ddogctl" in result.output
+        assert "_PUPPY_COMPLETE=fish_source" in result.output
+        assert "puppy" in result.output
 
     def test_fish_outputs_source_pipe(self):
         runner = CliRunner()

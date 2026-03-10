@@ -3,7 +3,7 @@
 import json
 import pytest
 
-from ddogctl.utils.file_input import load_json_file, load_json_option
+from puppy_kit.utils.file_input import load_json_file, load_json_option
 
 
 class TestLoadJsonFile:

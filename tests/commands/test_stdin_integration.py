@@ -5,10 +5,10 @@ import json
 import pytest
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from ddogctl.commands.monitor import monitor
-from ddogctl.commands.dashboard import dashboard
-from ddogctl.commands.apply import apply_cmd
-from ddogctl.commands.slo import slo
+from puppy_kit.commands.monitor import monitor
+from puppy_kit.commands.dashboard import dashboard
+from puppy_kit.commands.apply import apply_cmd
+from puppy_kit.commands.slo import slo
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ class TestMonitorCreateFromStdin:
         created.to_dict.return_value = {"id": 12345, "name": "Test Monitor"}
         mock_client.monitors.create_monitor.return_value = created
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["create", "--from-stdin"],
@@ -76,7 +76,7 @@ class TestMonitorCreateFromStdin:
         created.to_dict.return_value = {"id": 12345, "name": "Test Monitor"}
         mock_client.monitors.create_monitor.return_value = created
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["create", "--from-stdin", "--format", "json"],
@@ -89,7 +89,7 @@ class TestMonitorCreateFromStdin:
 
     def test_create_from_stdin_invalid_json(self, runner, mock_client):
         """Test that invalid JSON on stdin produces an error."""
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["create", "--from-stdin"],
@@ -112,7 +112,7 @@ class TestMonitorCreateFromStdin:
         created.to_dict.return_value = {"id": 999, "name": "From Stdin"}
         mock_client.monitors.create_monitor.return_value = created
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["create", "--from-stdin"],
@@ -144,7 +144,7 @@ class TestMonitorUpdateFromStdin:
         updated.to_dict.return_value = {"id": 12345, "name": "Updated Monitor"}
         mock_client.monitors.update_monitor.return_value = updated
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["update", "12345", "--from-stdin"],
@@ -165,7 +165,7 @@ class TestMonitorUpdateFromStdin:
         updated.to_dict.return_value = {"id": 12345, "name": "Updated Monitor"}
         mock_client.monitors.update_monitor.return_value = updated
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["update", "12345", "--from-stdin", "--format", "json"],
@@ -194,7 +194,7 @@ class TestMonitorMuteFromStdin:
 
         mock_client.monitors.update_monitor.return_value = Mock()
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["mute", "--from-stdin"],
@@ -213,7 +213,7 @@ class TestMonitorMuteFromStdin:
 
         mock_client.monitors.update_monitor.return_value = Mock()
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["mute", "--from-stdin"],
@@ -230,7 +230,7 @@ class TestMonitorMuteFromStdin:
 
         mock_client.monitors.update_monitor.return_value = Mock()
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["mute", "--from-stdin", "--duration", "3600"],
@@ -254,7 +254,7 @@ class TestMonitorMuteFromStdin:
 
         mock_client.monitors.update_monitor.return_value = Mock()
 
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 monitor,
                 ["mute", "--from-stdin"],
@@ -267,7 +267,7 @@ class TestMonitorMuteFromStdin:
 
     def test_mute_without_id_or_stdin_shows_error(self, runner, mock_client):
         """Test that mute without monitor_id and without --from-stdin shows an error."""
-        with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
             result = runner.invoke(monitor, ["mute"])
 
         assert result.exit_code != 0
@@ -295,7 +295,7 @@ class TestDashboardCreateFromStdin:
         created.to_dict.return_value = {"id": "abc-def-123", "title": "My Dashboard"}
         mock_client.dashboards.create_dashboard.return_value = created
 
-        with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 dashboard,
                 ["create", "--from-stdin"],
@@ -324,7 +324,7 @@ class TestDashboardCreateFromStdin:
         created.to_dict.return_value = {"id": "abc-def-456", "title": "Original Title"}
         mock_client.dashboards.create_dashboard.return_value = created
 
-        with patch("ddogctl.commands.dashboard.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 dashboard,
                 ["create", "--from-stdin"],
@@ -363,7 +363,7 @@ class TestSloCreateFromStdin:
         slo_response.data = [created]
         mock_client.slos.create_slo.return_value = slo_response
 
-        with patch("ddogctl.commands.slo.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 slo,
                 ["create", "--from-stdin"],
@@ -383,7 +383,7 @@ class TestSloCreateFromStdin:
 class TestApplyFromStdin:
     """Tests for apply command with --from-stdin."""
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_monitor_from_stdin(self, mock_get_client, runner, mock_client):
         """Test applying a monitor from piped JSON stdin."""
         mock_get_client.return_value = mock_client
@@ -409,7 +409,7 @@ class TestApplyFromStdin:
         assert "12345" in result.output
         mock_client.monitors.create_monitor.assert_called_once()
 
-    @patch("ddogctl.commands.apply.get_datadog_client")
+    @patch("puppy_kit.commands.apply.get_datadog_client")
     def test_apply_dashboard_from_stdin(self, mock_get_client, runner, mock_client):
         """Test applying a dashboard from piped JSON stdin."""
         mock_get_client.return_value = mock_client

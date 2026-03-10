@@ -7,7 +7,7 @@ from unittest.mock import patch
 import click
 import pytest
 
-from ddogctl.utils.stdin import read_stdin_json
+from puppy_kit.utils.stdin import read_stdin_json
 
 
 class TestReadStdinJson:

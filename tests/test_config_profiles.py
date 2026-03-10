@@ -4,7 +4,7 @@ import json
 from unittest.mock import patch
 
 import pytest
-from ddogctl.config import load_config
+from puppy_kit.config import load_config
 
 
 class TestLoadConfigWithProfiles:
@@ -13,7 +13,7 @@ class TestLoadConfigWithProfiles:
     @patch.dict("os.environ", {"DD_API_KEY": "env-key", "DD_APP_KEY": "env-app"}, clear=False)
     def test_env_vars_take_precedence_over_profile(self, tmp_path):
         """Test that env vars override profile values."""
-        config_dir = tmp_path / ".ddogctl"
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -29,7 +29,7 @@ class TestLoadConfigWithProfiles:
         }
         config_file.write_text(json.dumps(config_data))
 
-        with patch("ddogctl.config.get_config_path", return_value=str(config_file)):
+        with patch("puppy_kit.config.get_config_path", return_value=str(config_file)):
             config = load_config()
 
         # Env vars should win
@@ -39,7 +39,7 @@ class TestLoadConfigWithProfiles:
     @patch.dict("os.environ", {}, clear=True)
     def test_loads_from_active_profile_when_no_env_vars(self, tmp_path):
         """Test loading config from active profile when env vars are missing."""
-        config_dir = tmp_path / ".ddogctl"
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -55,7 +55,7 @@ class TestLoadConfigWithProfiles:
         }
         config_file.write_text(json.dumps(config_data))
 
-        with patch("ddogctl.config.get_config_path", return_value=str(config_file)):
+        with patch("puppy_kit.config.get_config_path", return_value=str(config_file)):
             config = load_config()
 
         assert config.api_key == "profile-key"
@@ -65,7 +65,7 @@ class TestLoadConfigWithProfiles:
     @patch.dict("os.environ", {}, clear=True)
     def test_loads_named_profile(self, tmp_path):
         """Test loading a specific named profile."""
-        config_dir = tmp_path / ".ddogctl"
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -86,17 +86,17 @@ class TestLoadConfigWithProfiles:
         }
         config_file.write_text(json.dumps(config_data))
 
-        with patch("ddogctl.config.get_config_path", return_value=str(config_file)):
+        with patch("puppy_kit.config.get_config_path", return_value=str(config_file)):
             config = load_config(profile="staging")
 
         assert config.api_key == "staging-key"
         assert config.app_key == "staging-app"
         assert config.site == "datadoghq.eu"
 
-    @patch.dict("os.environ", {"DDOGCTL_PROFILE": "staging"}, clear=True)
+    @patch.dict("os.environ", {"PUPPY_KIT_PROFILE": "staging"}, clear=True)
     def test_loads_profile_from_env_var(self, tmp_path):
-        """Test loading profile specified via DDOGCTL_PROFILE env var."""
-        config_dir = tmp_path / ".ddogctl"
+        """Test loading profile specified via PUPPY_KIT_PROFILE env var."""
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -117,7 +117,7 @@ class TestLoadConfigWithProfiles:
         }
         config_file.write_text(json.dumps(config_data))
 
-        with patch("ddogctl.config.get_config_path", return_value=str(config_file)):
+        with patch("puppy_kit.config.get_config_path", return_value=str(config_file)):
             config = load_config()
 
         assert config.api_key == "staging-key"
@@ -125,8 +125,8 @@ class TestLoadConfigWithProfiles:
 
     @patch.dict("os.environ", {}, clear=True)
     def test_cli_profile_overrides_env_var_profile(self, tmp_path):
-        """Test that explicit profile param overrides DDOGCTL_PROFILE env var."""
-        config_dir = tmp_path / ".ddogctl"
+        """Test that explicit profile param overrides PUPPY_KIT_PROFILE env var."""
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -147,7 +147,7 @@ class TestLoadConfigWithProfiles:
         }
         config_file.write_text(json.dumps(config_data))
 
-        with patch("ddogctl.config.get_config_path", return_value=str(config_file)):
+        with patch("puppy_kit.config.get_config_path", return_value=str(config_file)):
             config = load_config(profile="staging")
 
         assert config.api_key == "staging-key"
@@ -155,7 +155,7 @@ class TestLoadConfigWithProfiles:
     @patch.dict("os.environ", {}, clear=True)
     def test_nonexistent_profile_exits(self, tmp_path):
         """Test that requesting a nonexistent profile exits with error."""
-        config_dir = tmp_path / ".ddogctl"
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -172,8 +172,8 @@ class TestLoadConfigWithProfiles:
         config_file.write_text(json.dumps(config_data))
 
         with (
-            patch("ddogctl.config.get_config_path", return_value=str(config_file)),
-            patch("ddogctl.config.console"),
+            patch("puppy_kit.config.get_config_path", return_value=str(config_file)),
+            patch("puppy_kit.config.console"),
             pytest.raises(SystemExit),
         ):
             load_config(profile="nonexistent")
@@ -184,8 +184,8 @@ class TestLoadConfigWithProfiles:
         config_file = tmp_path / "nonexistent" / "config.json"
 
         with (
-            patch("ddogctl.config.get_config_path", return_value=str(config_file)),
-            patch("ddogctl.config.console"),
+            patch("puppy_kit.config.get_config_path", return_value=str(config_file)),
+            patch("puppy_kit.config.console"),
             pytest.raises(SystemExit),
         ):
             load_config()
@@ -193,7 +193,7 @@ class TestLoadConfigWithProfiles:
     @patch.dict("os.environ", {}, clear=True)
     def test_profile_site_region_shortcut_expanded(self, tmp_path):
         """Test that region shortcuts in profile are expanded."""
-        config_dir = tmp_path / ".ddogctl"
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -209,7 +209,7 @@ class TestLoadConfigWithProfiles:
         }
         config_file.write_text(json.dumps(config_data))
 
-        with patch("ddogctl.config.get_config_path", return_value=str(config_file)):
+        with patch("puppy_kit.config.get_config_path", return_value=str(config_file)):
             config = load_config()
 
         assert config.site == "datadoghq.eu"
@@ -221,9 +221,9 @@ class TestProfileFlagIntegration:
     @patch.dict("os.environ", {}, clear=True)
     def test_profile_flag_passes_to_load_config(self, runner, tmp_path):
         """Test that --profile flag is used when loading config."""
-        from ddogctl.cli import main
+        from puppy_kit.cli import main
 
-        config_dir = tmp_path / ".ddogctl"
+        config_dir = tmp_path / ".puppy-kit"
         config_dir.mkdir(parents=True)
         config_file = config_dir / "config.json"
 
@@ -239,7 +239,7 @@ class TestProfileFlagIntegration:
         }
         config_file.write_text(json.dumps(config_data))
 
-        with patch("ddogctl.config.get_config_path", return_value=str(config_file)):
+        with patch("puppy_kit.config.get_config_path", return_value=str(config_file)):
             # Just test that --profile is accepted as an option
             result = runner.invoke(main, ["--profile", "staging", "--help"])
 
@@ -248,7 +248,7 @@ class TestProfileFlagIntegration:
 
     def test_profile_flag_shown_in_help(self, runner):
         """Test that --profile is listed in CLI help."""
-        from ddogctl.cli import main
+        from puppy_kit.cli import main
 
         result = runner.invoke(main, ["--help"])
         assert result.exit_code == 0

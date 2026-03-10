@@ -6,9 +6,9 @@ from io import StringIO
 import pytest
 from unittest.mock import patch
 from datadog_api_client.exceptions import ApiException
-from ddogctl.utils.error import handle_api_error
-from ddogctl.utils.output import set_output_format
-from ddogctl.utils.exit_codes import (
+from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.output import set_output_format
+from puppy_kit.utils.exit_codes import (
     AUTH_ERROR,
     GENERAL_ERROR,
     NOT_FOUND,
@@ -32,19 +32,19 @@ class TestHandleApiError:
     @pytest.fixture
     def mock_console(self):
         """Mock rich Console for capturing retry output."""
-        with patch("ddogctl.utils.error.console") as mock:
+        with patch("puppy_kit.utils.error.console") as mock:
             yield mock
 
     @pytest.fixture
     def mock_emit_error(self):
         """Mock emit_error for capturing structured error calls."""
-        with patch("ddogctl.utils.error.emit_error") as mock:
+        with patch("puppy_kit.utils.error.emit_error") as mock:
             yield mock
 
     @pytest.fixture
     def mock_sleep(self):
         """Mock time.sleep to avoid delays in tests."""
-        with patch("ddogctl.utils.error.time.sleep") as mock:
+        with patch("puppy_kit.utils.error.time.sleep") as mock:
             yield mock
 
     def test_successful_call_no_error(self, mock_emit_error):
@@ -84,7 +84,7 @@ class TestHandleApiError:
             "AUTH_FAILED",
             401,
             "Authentication failed",
-            "Check DD_API_KEY and DD_APP_KEY or run ddogctl config init",
+            "Check DD_API_KEY and DD_APP_KEY or run puppy config init",
         )
 
     def test_403_permission_error(self, mock_emit_error):
@@ -406,7 +406,7 @@ class TestHandleApiErrorJsonMode:
     @pytest.fixture
     def mock_sleep(self):
         """Mock time.sleep to avoid delays in tests."""
-        with patch("ddogctl.utils.error.time.sleep") as mock:
+        with patch("puppy_kit.utils.error.time.sleep") as mock:
             yield mock
 
     def test_401_json_output(self):
@@ -426,7 +426,7 @@ class TestHandleApiErrorJsonMode:
         assert data["error"] is True
         assert data["code"] == "AUTH_FAILED"
         assert data["status"] == 401
-        assert data["hint"] == "Check DD_API_KEY and DD_APP_KEY or run ddogctl config init"
+        assert data["hint"] == "Check DD_API_KEY and DD_APP_KEY or run puppy config init"
 
     def test_403_json_output(self):
         """Test 403 error produces JSON on stderr in JSON mode."""
