@@ -1,16 +1,21 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.24.2", "hatch-vcs>=0.4.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ddogctl"
-version = "2.0.3"
-description = "A modern CLI for the Datadog API. Like Dogshell, but better."
-authors = [{name = "Sergio Francisco", email = "email@sergiofrancisco.com"}]
+name = "puppy-kit"
+dynamic = ["version"]
+description = "Datadog CLI + MCP server for AI-driven incident management."
+authors = [
+    {name = "Willem van der Schans"},
+]
+maintainers = [
+    {name = "Willem van der Schans"},
+]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["datadog", "cli", "monitoring", "observability", "apm", "logs"]
+keywords = ["datadog", "cli", "mcp", "monitoring", "observability", "ai-agents"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -35,29 +40,32 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = ["mcp[cli]>=1.0"]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
-    "black>=24.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.8.0",
+    "ruff>=0.8.0",
 ]
 
 [project.scripts]
-ddogctl = "ddogctl.cli:main"
+puppy = "puppy_kit.cli:main"
+puppy-kit = "puppy_kit.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/srgfrancisco/ddogctl"
-Issues = "https://github.com/srgfrancisco/ddogctl/issues"
+Homepage = "https://github.com/WrenchAI/puppy-kit"
+Issues = "https://github.com/WrenchAI/puppy-kit/issues"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "puppy_kit/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
     "integration: integration tests (use -m 'not integration' to skip)",
 ]
-
-[tool.black]
-line-length = 100
 
 [tool.ruff]
 line-length = 100

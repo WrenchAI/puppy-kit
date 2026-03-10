@@ -53,6 +53,9 @@ reports/*.md
 # Worktrees
 .worktrees/
 
+# Generated version file (hatch-vcs)
+puppy_kit/_version.py
+
 # OS
 .DS_Store
 Thumbs.db
