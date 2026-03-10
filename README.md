@@ -14,6 +14,7 @@ Forked from [ddogctl](https://github.com/srgfrancisco/ddogctl) by Sergio Francis
 - Optional MCP server exposing Datadog operations as tools for AI agents
 - Retry logic with exponential backoff on rate limits and server errors
 - Multi-profile configuration with region shortcuts
+- Per-profile ops mode: `triage` (safe default) or `full` (all operations unlocked)
 - Watch mode, stdin piping, JSON export, and shell completions
 
 ## Installation
@@ -89,6 +90,36 @@ Or via environment variable:
 ```bash
 export PUPPY_KIT_PROFILE=production
 ```
+
+### Ops Profile
+
+Each profile has an `ops_profile` setting that controls which Datadog API operations are available:
+
+| Profile | What's enabled |
+|---------|---------------|
+| `triage` (default) | Incident management (full CRUD), case linking, read-only triage ops (findings, scorecard, SLO reports, flaky tests, LLM observability, security signals, etc.) |
+| `full` | Everything in `triage` plus infrastructure setup ops: fleet management, deployment gates, API catalog, Jira/ServiceNow integration config, restriction policies, data deletion, SCA rules, and more |
+
+Set it during `puppy config init` (prompted automatically), or explicitly:
+
+```bash
+# Set on an existing profile
+puppy config set-profile --ops-profile full
+
+# Or in ~/.puppy-kit/config.json
+{
+  "profiles": {
+    "Wrench": {
+      "api_key": "...",
+      "app_key": "...",
+      "site": "us5.datadoghq.com",
+      "ops_profile": "triage"
+    }
+  }
+}
+```
+
+Use `triage` for AI agents and automated tooling. Use `full` only when you need to manage Datadog infrastructure directly.
 
 ### Region Shortcuts
 
