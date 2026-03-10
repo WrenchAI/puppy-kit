@@ -36,6 +36,22 @@ pip install puppy-kit[mcp]
 
 ## Configuration
 
+### Getting Your Credentials
+
+Before using puppy-kit, you need two API keys from Datadog:
+
+- **`DD_API_KEY`** — Your organization's API key. Found in Datadog at **Organization Settings > API Keys**. This key is scoped to your organization and used for sending and reading data (metrics, logs, events, etc.).
+
+- **`DD_APP_KEY`** — Your personal application key. Found in Datadog at **Organization Settings > Application Keys**. This key is scoped to your user account and is required for management operations such as creating/updating monitors, dashboards, logs queries, and other admin tasks. Granting all scopes is recommended for personal use.
+
+**Important:** Both keys are required for most `puppy` commands. Without `DD_APP_KEY`, you will receive a 403 Unauthorized error on most read and write operations.
+
+To locate these in the Datadog UI:
+1. Log in to [Datadog](https://app.datadoghq.com)
+2. Click your user icon (bottom left) → **Organization Settings**
+3. Select **API Keys** or **Application Keys** from the left sidebar
+4. Copy the key or generate a new one
+
 ### Environment Variables
 
 ```bash
@@ -44,13 +60,15 @@ export DD_APP_KEY="your-app-key"
 export DD_SITE="us"  # optional, defaults to datadoghq.com
 ```
 
+**Note:** `DD_SITE` is a shortcut (see [Region Shortcuts](#region-shortcuts) below). For example, use `us5` to point to `us5.datadoghq.com`.
+
 ### Interactive Setup
 
 ```bash
 puppy config init
 ```
 
-This creates `~/.puppy-kit/config.json` with your credentials.
+This command prompts you interactively for your `DD_API_KEY`, `DD_APP_KEY`, and optional `DD_SITE`, then creates `~/.puppy-kit/config.json` with your credentials.
 
 ### Multi-Profile
 
@@ -82,6 +100,17 @@ export PUPPY_KIT_PROFILE=production
 | `us5` | `us5.datadoghq.com` |
 | `ap1` | `ap1.datadoghq.com` |
 | `gov` | `ddog-gov.com` |
+
+### Verify Connectivity
+
+After setting up your credentials, test the connection:
+
+```bash
+puppy config get          # confirm keys are loaded
+puppy monitor list        # test authenticated read
+```
+
+If you see a 403 Unauthorized error, ensure both `DD_API_KEY` and `DD_APP_KEY` are set and have the correct values.
 
 ## Quick Start
 
