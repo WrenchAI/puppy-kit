@@ -87,6 +87,11 @@ def init_config():
     api_key = click.prompt("API Key", hide_input=True)
     app_key = click.prompt("App Key", hide_input=True)
     site = click.prompt("Site (us, eu, us3, us5, ap1, gov, or full domain)", default="us")
+    ops_profile = click.prompt(
+        "Ops profile (triage or full)",
+        type=click.Choice(["triage", "full"]),
+        default="triage",
+    )
     profile_name = click.prompt("Profile name", default="default")
 
     site = expand_site(site)
@@ -100,6 +105,7 @@ def init_config():
         "api_key": api_key,
         "app_key": app_key,
         "site": site,
+        "ops_profile": ops_profile,
     }
 
     # Set as active if no active profile
@@ -117,7 +123,14 @@ def init_config():
 @click.option("--api-key", required=True, help="Datadog API key")
 @click.option("--app-key", required=True, help="Datadog Application key")
 @click.option("--site", default="us", help="Datadog site (us, eu, us3, us5, ap1, gov, or domain)")
-def set_profile(name, api_key, app_key, site):
+@click.option(
+    "--ops-profile",
+    type=click.Choice(["triage", "full"]),
+    default="triage",
+    show_default=True,
+    help="Ops profile mode",
+)
+def set_profile(name, api_key, app_key, site, ops_profile):
     """Create or update a profile.
 
     Example:
@@ -133,6 +146,7 @@ def set_profile(name, api_key, app_key, site):
         "api_key": api_key,
         "app_key": app_key,
         "site": site,
+        "ops_profile": ops_profile,
     }
 
     # Set as active if it's the first profile or no active profile
@@ -188,6 +202,7 @@ def list_profiles():
     table.add_column("API Key", style="dim")
     table.add_column("App Key", style="dim")
     table.add_column("Site", style="white")
+    table.add_column("Ops Profile", style="white")
 
     for name, profile in sorted(data["profiles"].items()):
         marker = "*" if name == active else ""
@@ -197,6 +212,7 @@ def list_profiles():
             mask_key(profile.get("api_key", "")),
             mask_key(profile.get("app_key", "")),
             profile.get("site", ""),
+            profile.get("ops_profile", "triage"),
         )
 
     console.print(table)
@@ -208,13 +224,13 @@ def list_profiles():
 def get_value(key):
     """Show the current value for a configuration key.
 
-    Valid keys: active_profile, api_key, app_key, site
+    Valid keys: active_profile, api_key, app_key, site, ops_profile
 
     Example:
         puppy config get site
         puppy config get active_profile
     """
-    valid_keys = {"active_profile", "api_key", "app_key", "site"}
+    valid_keys = {"active_profile", "api_key", "app_key", "site", "ops_profile"}
 
     if key not in valid_keys:
         console.print(
@@ -240,7 +256,10 @@ def get_value(key):
         sys.exit(1)
 
     profile = profiles[active]
-    value = profile.get(key, "")
+    if key == "ops_profile":
+        value = profile.get("ops_profile", "triage")
+    else:
+        value = profile.get(key, "")
 
     # Mask sensitive keys
     if key in ("api_key", "app_key"):

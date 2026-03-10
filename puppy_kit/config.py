@@ -2,6 +2,7 @@
 
 import json
 import os
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -41,6 +42,8 @@ class DatadogConfig(BaseSettings):
         extra="ignore",
     )
 
+    ops_profile: Literal["triage", "full"] = "triage"
+
     @field_validator("site")
     @classmethod
     def expand_region_shortcut(cls, v: str) -> str:
@@ -64,7 +67,8 @@ def _load_profile_data(profile: str | None = None) -> dict | None:
                  or active_profile from config file.
 
     Returns:
-        Dict with api_key, app_key, site from the profile, or None if not found.
+        Dict with api_key, app_key, site, ops_profile from the profile,
+        or None if not found.
     """
     config_path = get_config_path()
 
@@ -93,7 +97,9 @@ def _load_profile_data(profile: str | None = None) -> dict | None:
             return {"_error": f"Profile '{profile}' not found"}
         return None
 
-    return profiles[profile]
+    profile_data = profiles[profile]
+    profile_data["ops_profile"] = profile_data.get("ops_profile", "triage")
+    return profile_data
 
 
 def load_config(profile: str | None = None) -> DatadogConfig:
@@ -118,6 +124,7 @@ def load_config(profile: str | None = None) -> DatadogConfig:
         kwargs["DD_API_KEY"] = os.environ.get("DD_API_KEY", profile_data.get("api_key", ""))
         kwargs["DD_APP_KEY"] = os.environ.get("DD_APP_KEY", profile_data.get("app_key", ""))
         kwargs["DD_SITE"] = os.environ.get("DD_SITE", profile_data.get("site", "datadoghq.com"))
+        kwargs["ops_profile"] = profile_data.get("ops_profile", "triage")
 
         try:
             return DatadogConfig(**kwargs)
