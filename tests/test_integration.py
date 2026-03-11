@@ -143,13 +143,6 @@ class TestIntegration:
         if "No users" in result.output or result.output.strip() == "":
             warnings.warn("User list returned empty results")
 
-    def test_dbm_hosts(self, runner):
-        """Test puppy dbm hosts."""
-        result = runner.invoke(main, ["dbm", "hosts"])
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        if "No hosts" in result.output or result.output.strip() == "":
-            warnings.warn("DBM hosts returned empty results")
-
     def test_ci_pipelines(self, runner):
         """Test puppy ci pipelines --limit 5."""
         result = runner.invoke(main, ["ci", "pipelines", "--limit", "5"])

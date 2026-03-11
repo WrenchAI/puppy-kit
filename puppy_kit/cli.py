@@ -129,7 +129,6 @@ from puppy_kit.commands.event import event
 from puppy_kit.commands.host import host
 from puppy_kit.commands.apm import apm
 from puppy_kit.commands.logs import logs
-from puppy_kit.commands.dbm import dbm
 from puppy_kit.commands.service_check import service_check
 from puppy_kit.commands.tag import tag
 from puppy_kit.commands.downtime import downtime
@@ -149,7 +148,6 @@ main.add_command(event)
 main.add_command(host)
 main.add_command(apm)
 main.add_command(logs)
-main.add_command(dbm)
 main.add_command(service_check)
 main.add_command(tag)
 main.add_command(downtime)
