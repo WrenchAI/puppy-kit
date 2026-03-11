@@ -2,6 +2,7 @@
 
 import calendar
 import json
+import requests as _requests
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from types import SimpleNamespace
@@ -51,31 +52,22 @@ def _call_billing_api(
     path: str,
     month: date | None = None,
 ) -> SimpleNamespace:
-    """Call a billing endpoint through the raw SDK API client."""
-    query_params: dict[str, str] = {}
+    """Call a Datadog billing endpoint via raw HTTP (SDK does not cover these paths)."""
+    params: dict[str, str] = {}
     if month is not None:
-        query_params["month"] = month.strftime("%Y-%m")
+        params["start_month"] = month.strftime("%Y-%m")
 
-    api_client = getattr(client, "api_client", None)
-    if api_client is None:
-        raise RuntimeError("Datadog API client is not configured for raw billing calls.")
-    response = api_client.call_api(
-        path,
-        "GET",
-        query_params=query_params,
-        header_params={"Accept": "application/json"},
-    )
-    raw_response = getattr(response, "response", None)
-    raw_body = getattr(raw_response, "data", b"")
+    cfg = client.config
+    url = f"https://api.{cfg.site}{path}"
+    headers = {
+        "DD-API-KEY": cfg.api_key,
+        "DD-APPLICATION-KEY": cfg.app_key,
+        "Accept": "application/json",
+    }
+    response = _requests.get(url, headers=headers, params=params, timeout=30)
+    response.raise_for_status()
 
-    if isinstance(raw_body, bytes):
-        payload_text = raw_body.decode("utf-8")
-    elif raw_body:
-        payload_text = str(raw_body)
-    else:
-        payload_text = "{}"
-
-    payload_object = cast(object, json.loads(payload_text) if payload_text else {})
+    payload_object = cast(object, response.json() if response.content else {})
     payload_namespace = _to_namespace(payload_object)
     if isinstance(payload_namespace, SimpleNamespace):
         return payload_namespace
@@ -242,9 +234,11 @@ def summary(output_format: str, show_all: bool, sort_by: str) -> None:
     days_in_month = _days_in_month(today)
 
     with console.status("[cyan]Fetching estimated cost data...[/cyan]"):
-        estimated_payload = _call_billing_api(client, "/api/v1/org/estimated_cost")
+        estimated_payload = _call_billing_api(
+            client, "/api/v2/usage/estimated_cost", month=current_month
+        )
         previous_payload = _call_billing_api(
-            client, "/api/v1/org/monthly_cost", month=previous_month
+            client, "/api/v2/usage/estimated_cost", month=previous_month
         )
 
     estimated_costs = _collect_product_costs(estimated_payload)
@@ -350,9 +344,11 @@ def month_over_month(output_format: str, threshold: float, show_all: bool) -> No
     previous_month = _month_start(current_month - timedelta(days=1))
 
     with console.status("[cyan]Fetching monthly cost data...[/cyan]"):
-        current_payload = _call_billing_api(client, "/api/v1/org/monthly_cost", month=current_month)
+        current_payload = _call_billing_api(
+            client, "/api/v2/usage/estimated_cost", month=current_month
+        )
         previous_payload = _call_billing_api(
-            client, "/api/v1/org/monthly_cost", month=previous_month
+            client, "/api/v2/usage/estimated_cost", month=previous_month
         )
 
     current_costs = _collect_product_costs(current_payload)
