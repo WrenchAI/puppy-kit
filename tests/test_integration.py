@@ -15,18 +15,19 @@ import pytest
 import warnings
 from click.testing import CliRunner
 from puppy_kit.cli import main
-from puppy_kit.config import DatadogConfig
 
 
 def _creds_available() -> bool:
     """Return True if valid Datadog credentials are accessible via any configured source.
 
     Checks: env vars (DD_API_KEY, DD_APP_KEY) or active profile in ~/.puppy-kit/config.json
+    Uses load_config() so profile resolution matches the CLI exactly.
     """
     try:
-        cfg = DatadogConfig()
+        from puppy_kit.config import load_config
+        cfg = load_config()
         return bool(cfg.api_key and cfg.app_key)
-    except Exception:
+    except (Exception, SystemExit):
         return False
 
 
