@@ -207,8 +207,9 @@ def llm():
 @click.option(
     "--span-kind",
     type=click.Choice(["llm", "workflow", "agent", "tool", "task", "embedding", "retrieval"]),
-    default=None,
-    help="Filter by span kind",
+    default="llm",
+    show_default=True,
+    help="Filter by span kind [default: llm]",
 )
 @click.option("--model", default=None, help="Filter by model name (e.g., gpt-4o-mini)")
 @click.option(
@@ -253,8 +254,7 @@ def traces(
         "to": to_iso,
     }
 
-    if span_kind:
-        filter_block["span_kind"] = span_kind
+    filter_block["span_kind"] = span_kind
 
     if ml_app:
         filter_block["tags"] = {"ml_app": ml_app}
