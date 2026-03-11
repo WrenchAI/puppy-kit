@@ -210,11 +210,17 @@ def llm():
     help="Filter by span kind",
 )
 @click.option("--model", default=None, help="Filter by model name (e.g., gpt-4o-mini)")
-@click.option("--from", "from_", default="1h", show_default=True,
-    help="Time window: Nh (hours) or Nd (days), e.g. 1h, 24h, 2d")
+@click.option(
+    "--from",
+    "from_",
+    default="1h",
+    show_default=True,
+    help="Time window: Nh (hours) or Nd (days), e.g. 1h, 24h, 2d",
+)
 @click.option("--page-size", type=int, default=25, show_default=True)
-@click.option("--format", "fmt", type=click.Choice(["json", "table"]), default="table",
-    show_default=True)
+@click.option(
+    "--format", "fmt", type=click.Choice(["json", "table"]), default="table", show_default=True
+)
 @handle_api_error
 def traces(
     ml_app: str | None,
@@ -288,7 +294,8 @@ def traces(
     if model:
         model_lower = model.lower()
         spans = [
-            s for s in spans
+            s
+            for s in spans
             if model_lower in str(s.get("attributes", {}).get("model_name", "")).lower()
         ]
 

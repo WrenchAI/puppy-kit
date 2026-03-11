@@ -83,8 +83,8 @@ class TestHandleApiError:
         mock_emit_error.assert_called_once_with(
             "AUTH_FAILED",
             401,
-            "Authentication failed",
-            "Check DD_API_KEY and DD_APP_KEY or run puppy config init",
+            "Authentication failed. Verify DD_API_KEY and DD_APP_KEY are set correctly.",
+            "Run: puppy config test",
         )
 
     def test_403_permission_error(self, mock_emit_error):
@@ -101,8 +101,8 @@ class TestHandleApiError:
         mock_emit_error.assert_called_once_with(
             "PERMISSION_DENIED",
             403,
-            "Permission denied",
-            "Check API key permissions",
+            "Permission denied. Your API key lacks required permissions.",
+            "Check your Datadog API key permissions or run: puppy config test",
         )
 
     def test_404_not_found_error(self, mock_emit_error, mock_sleep):
@@ -122,7 +122,7 @@ class TestHandleApiError:
         assert call_args[0][0] == "NOT_FOUND"
         assert call_args[0][1] == 404
         assert "not found" in call_args[0][2].lower()
-        assert call_args[0][3] == "Verify the resource ID"
+        assert call_args[0][3] == "Use 'puppy <command> list' to find valid IDs."
 
     def test_429_rate_limit_with_retry(self, mock_console, mock_emit_error, mock_sleep):
         """Test that 429 errors trigger retry with exponential backoff."""
@@ -178,11 +178,11 @@ class TestHandleApiError:
         args = mock_emit_error.call_args[0]
         assert args[0] == "RATE_LIMITED"
         assert args[1] == 429
-        assert "Rate limited after 3 retries" in args[2]
+        assert "Rate limited by Datadog API after 3 retries" in args[2]
         assert "Suggested wait:" in args[2]
         wait_fragment = args[2].split("Suggested wait:", 1)[1].strip().split()[0]
         assert wait_fragment[:-1].isdigit() and wait_fragment.endswith("+")
-        assert args[3] == "Try again later or reduce request frequency"
+        assert args[3] == "Try reducing --limit, remove filters, or retry later."
 
     def test_500_server_error_with_retry(self, mock_console, mock_emit_error, mock_sleep):
         """Test that 5xx errors trigger retry."""
@@ -250,8 +250,8 @@ class TestHandleApiError:
         call_args = mock_emit_error.call_args
         assert call_args[0][0] == "SERVER_ERROR"
         assert call_args[0][1] == 500
-        assert "Server error" in call_args[0][2]
-        assert call_args[0][3] == "Datadog service issue, try again later"
+        assert "Datadog API server error" in call_args[0][2]
+        assert call_args[0][3] == "Check https://status.datadoghq.com for incidents. Try again later."
 
     def test_400_client_error_no_retry(self, mock_emit_error, mock_sleep):
         """Test that 400 errors are treated as validation errors without retry."""
@@ -429,7 +429,7 @@ class TestHandleApiErrorJsonMode:
         assert data["error"] is True
         assert data["code"] == "AUTH_FAILED"
         assert data["status"] == 401
-        assert data["hint"] == "Check DD_API_KEY and DD_APP_KEY or run puppy config init"
+        assert data["hint"] == "Run: puppy config test"
 
     def test_403_json_output(self):
         """Test 403 error produces JSON on stderr in JSON mode."""
@@ -464,7 +464,7 @@ class TestHandleApiErrorJsonMode:
         data = json.loads(mock_stderr.getvalue())
         assert data["code"] == "NOT_FOUND"
         assert data["status"] == 404
-        assert data["hint"] == "Verify the resource ID"
+        assert data["hint"] == "Use 'puppy <command> list' to find valid IDs."
 
     def test_429_exhausted_json_output(self, mock_sleep):
         """Test 429 after max retries produces JSON on stderr."""
