@@ -1,8 +1,11 @@
 """Incident management commands."""
 
-import click
+from datetime import datetime, timedelta, timezone
 import json
+import re
 import warnings
+
+import click
 from rich.console import Console
 from rich.table import Table
 from puppy_kit.client import get_datadog_client
@@ -36,6 +39,15 @@ def _impact_label(value):
     return "[dim]unknown[/dim]"
 
 
+def _get_attr(attrs, field, default=""):
+    """Safely get attribute, checking _data_store if needed."""
+    val = getattr(attrs, field, None)
+    data_store = getattr(attrs, "_data_store", None)
+    if val is None and isinstance(data_store, dict):
+        val = data_store.get(field, None)
+    return default if val is None else val
+
+
 @click.group()
 def incident():
     """Incident management commands."""
@@ -50,57 +62,151 @@ def incident():
     "--status",
     type=click.Choice(["active", "stable", "resolved"]),
     default=None,
-    help="Filter by status",
+    help="Convenience filter mapped to a state:<value> search query fragment",
 )
 @click.option("--page-size", type=int, default=10, help="Page size for results")
-@click.option("--all-pages", is_flag=True, help="Fetch all pages (paginate through all incidents)")
+@click.option("--query", default="", help="Datadog incident search query using facet syntax")
+@click.option(
+    "--sort",
+    type=click.Choice(["created", "-created"]),
+    default="-created",
+    help="Sort incidents by creation time",
+)
+@click.option(
+    "--since",
+    default=None,
+    help="Only include incidents newer than this cutoff (for example: '14 days', '24 hours', '2026-02-25')",
+)
 @handle_api_error
-def list_incidents(format, status, page_size, all_pages):
-    """List all incidents, with optional pagination."""
+def list_incidents(
+    format: str, status: str | None, page_size: int, query: str, sort: str, since: str | None
+) -> None:
+    """List incidents with Datadog search queries, sorting, and optional cutoff pagination."""
+
+    def _parse_since(value: str | None) -> datetime | None:
+        if value is None:
+            return None
+
+        normalized = value.strip()
+        if not normalized:
+            raise click.UsageError(
+                "Invalid --since value: expected 'N days', 'N hours', or YYYY-MM-DD."
+            )
+
+        relative_match = re.fullmatch(r"(?i)(\d+)\s+(day|days|hour|hours)", normalized)
+        if relative_match:
+            amount = int(relative_match.group(1))
+            unit = relative_match.group(2).lower()
+            now = datetime.now(timezone.utc)
+            if "day" in unit:
+                return now - timedelta(days=amount)
+            return now - timedelta(hours=amount)
+
+        try:
+            parsed_date = datetime.strptime(normalized, "%Y-%m-%d")
+        except ValueError as exc:
+            raise click.UsageError(
+                f"Invalid --since value '{value}': expected 'N days', 'N hours', or YYYY-MM-DD."
+            ) from exc
+
+        return parsed_date.replace(tzinfo=timezone.utc)
+
+    def _coerce_utc_datetime(value: object) -> datetime | None:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return (
+                value.replace(tzinfo=timezone.utc)
+                if value.tzinfo is None
+                else value.astimezone(timezone.utc)
+            )
+        if isinstance(value, str):
+            normalized = value.strip()
+            if not normalized:
+                return None
+            if normalized.endswith("Z"):
+                normalized = f"{normalized[:-1]}+00:00"
+            try:
+                parsed = datetime.fromisoformat(normalized)
+            except ValueError:
+                return None
+            return (
+                parsed.replace(tzinfo=timezone.utc)
+                if parsed.tzinfo is None
+                else parsed.astimezone(timezone.utc)
+            )
+        return None
+
+    cutoff = _parse_since(since)
+    if cutoff is not None and sort != "-created":
+        raise click.UsageError("--since requires --sort=-created so pagination can stop early.")
+
     client = get_datadog_client()
 
-    all_incidents = []
-    page_offset = 0
+    all_incidents: list[object] = []
+    page_offset: int | None = 0
+    effective_page_size = min(page_size, 100)
+
+    query_parts: list[str] = []
+    if query.strip():
+        query_parts.append(query.strip())
+    if status:
+        query_parts.append(f"state:{status}")
+    search_query = " ".join(query_parts)
 
     with console.status("[cyan]Fetching incidents...[/cyan]"):
-        while True:
-            response = client.incidents.list_incidents(page_size=page_size, page_offset=page_offset)
+        while page_offset is not None:
+            response = client.incidents.search_incidents(
+                search_query,
+                sort=sort,
+                page_size=effective_page_size,
+                page_offset=page_offset,
+            )
 
-            incidents = response.data if response.data else []
+            incidents = list(getattr(response, "included", []) or [])
             if not incidents:
                 break
 
-            all_incidents.extend(incidents)
+            if cutoff is not None:
+                filtered_page = []
+                for inc in incidents:
+                    attrs = getattr(inc, "attributes", None)
+                    created_at = _coerce_utc_datetime(_get_attr(attrs, "created", None))
+                    if created_at is not None and created_at >= cutoff:
+                        filtered_page.append(inc)
+                all_incidents.extend(filtered_page)
 
-            if not all_pages or len(incidents) < page_size:
+                last_incident = incidents[-1]
+                last_attrs = getattr(last_incident, "attributes", None)
+                last_created = _coerce_utc_datetime(_get_attr(last_attrs, "created", None))
+                if last_created is not None and last_created < cutoff:
+                    break
+            else:
+                all_incidents.extend(incidents)
+
+            pagination = getattr(getattr(response, "meta", None), "pagination", None)
+            next_offset = getattr(pagination, "next_offset", None)
+            if next_offset is None:
                 break
 
-            page_offset += page_size
-
-    # Filter by status if provided
-    if status:
-        all_incidents = [
-            inc
-            for inc in all_incidents
-            if _stringify_enum(getattr(inc.attributes, "status", "unknown")) == status
-        ]
+            page_offset = int(next_offset)
 
     if format == "json":
         output = []
         for inc in all_incidents:
-            attrs = inc.attributes
+            attrs = getattr(inc, "attributes", None)
             output.append(
                 {
-                    "id": inc.id,
-                    "title": getattr(attrs, "title", ""),
-                    "severity": _stringify_enum(getattr(attrs, "severity", "unknown")),
-                    "status": _stringify_enum(getattr(attrs, "status", "unknown")),
-                    "customer_impacted": getattr(attrs, "customer_impacted", "unknown"),
-                    "public_id": getattr(inc, "public_id", "unknown"),
-                    "detected": _stringify_datetime(getattr(attrs, "detected", "")),
-                    "resolved": _stringify_datetime(getattr(attrs, "resolved", "")),
-                    "created": _stringify_datetime(getattr(attrs, "created", "")),
-                    "modified": _stringify_datetime(getattr(attrs, "modified", "")),
+                    "id": _get_attr(inc, "id", ""),
+                    "title": _get_attr(attrs, "title", ""),
+                    "severity": _stringify_enum(_get_attr(attrs, "severity", "unknown")),
+                    "status": _stringify_enum(_get_attr(attrs, "status", "unknown")),
+                    "customer_impacted": _get_attr(attrs, "customer_impacted", "unknown"),
+                    "public_id": _get_attr(inc, "public_id", "unknown"),
+                    "detected": _stringify_datetime(_get_attr(attrs, "detected", "")),
+                    "resolved": _stringify_datetime(_get_attr(attrs, "resolved", "")),
+                    "created": _stringify_datetime(_get_attr(attrs, "created", "")),
+                    "modified": _stringify_datetime(_get_attr(attrs, "modified", "")),
                 }
             )
         print(json.dumps(output, indent=2))
@@ -114,9 +220,9 @@ def list_incidents(format, status, page_size, all_pages):
         table.add_column("Created", style="dim", width=20)
 
         for inc in all_incidents:
-            attrs = inc.attributes
-            status_str = _stringify_enum(getattr(attrs, "status", "unknown"))
-            severity_str = _stringify_enum(getattr(attrs, "severity", "unknown"))
+            attrs = getattr(inc, "attributes", None)
+            status_str = _stringify_enum(_get_attr(attrs, "status", "unknown"))
+            severity_str = _stringify_enum(_get_attr(attrs, "severity", "unknown"))
             status_color = {
                 "active": "red",
                 "stable": "yellow",
@@ -124,12 +230,12 @@ def list_incidents(format, status, page_size, all_pages):
             }.get(status_str, "white")
 
             table.add_row(
-                str(inc.id),
-                str(getattr(attrs, "title", "")),
+                str(_get_attr(inc, "id", "")),
+                str(_get_attr(attrs, "title", "")),
                 severity_str,
                 f"[{status_color}]{status_str}[/{status_color}]",
-                _impact_label(getattr(attrs, "customer_impacted", "unknown")),
-                _stringify_datetime(getattr(attrs, "created", "")),
+                _impact_label(_get_attr(attrs, "customer_impacted", "unknown")),
+                _stringify_datetime(_get_attr(attrs, "created", "")),
             )
 
         console.print(table)
@@ -292,6 +398,10 @@ def update_incident(incident_id, title, status, severity, assignee, format):
     from datadog_api_client.v2.model.incident_update_request import IncidentUpdateRequest
     from datadog_api_client.v2.model.incident_update_data import IncidentUpdateData
     from datadog_api_client.v2.model.incident_update_attributes import IncidentUpdateAttributes
+    from datadog_api_client.v2.model.incident_field_attributes import IncidentFieldAttributes
+    from datadog_api_client.v2.model.incident_field_attributes_single_value_type import (
+        IncidentFieldAttributesSingleValueType,
+    )
 
     if not any([title, status, severity, assignee]):
         raise click.UsageError(
@@ -303,12 +413,15 @@ def update_incident(incident_id, title, status, severity, assignee, format):
     attrs_kwargs = {}
     if title is not None:
         attrs_kwargs["title"] = title
-    if status is not None:
-        attrs_kwargs["status"] = status
     if assignee is not None:
         attrs_kwargs["assignee"] = assignee
 
     fields = {}
+    if status is not None:
+        fields["state"] = IncidentFieldAttributes(
+            type=IncidentFieldAttributesSingleValueType.DROPDOWN,
+            value=status,
+        )
     if severity is not None:
         fields["severity"] = {"type": "dropdown", "value": severity}
     if fields:

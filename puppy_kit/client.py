@@ -25,7 +25,10 @@ from datadog_api_client.v2.api import (
     rum_api,
     ci_visibility_pipelines_api,
     ci_visibility_tests_api,
+    llm_observability_api,
 )
+from puppy_kit import trace_logger
+from puppy_kit.env import TRACE_ENABLED, DEBUG_ENABLED
 from puppy_kit.config import DatadogConfig
 
 
@@ -261,6 +264,7 @@ class DatadogClient:
     """Unified Datadog API client."""
 
     def __init__(self, config: DatadogConfig):
+        self.config = config
         configuration = Configuration()
         configuration.api_key["apiKeyAuth"] = config.api_key
         configuration.api_key["appKeyAuth"] = config.app_key
@@ -279,6 +283,61 @@ class DatadogClient:
             configuration.proxy = proxy
 
         self.api_client = ApiClient(configuration)
+        if (TRACE_ENABLED or DEBUG_ENABLED) and not hasattr(self.api_client, "_original_call_api"):
+            self.api_client._original_call_api = self.api_client.call_api
+
+            def traced_call_api(resource_path, method, *args, **kwargs):
+                status = "-"
+                try:
+                    result = self.api_client._original_call_api(
+                        resource_path, method, *args, **kwargs
+                    )
+                    # Try to extract status from result
+                    if hasattr(result, "status"):
+                        status = str(result.status)
+                    elif isinstance(result, tuple) and len(result) >= 2:
+                        status = str(result[1])
+
+                    if DEBUG_ENABLED:
+                        import sys
+                        import json
+
+                        print(f"\n[DEBUG] {method} {resource_path} → {status}", file=sys.stderr)
+                        try:
+                            # Try to pretty-print the response
+                            if hasattr(result, "to_dict"):
+                                print(
+                                    json.dumps(result.to_dict(), indent=2, default=str),
+                                    file=sys.stderr,
+                                )
+                            elif hasattr(result, "data"):
+                                print(
+                                    json.dumps(str(result.data)[:2000], indent=2, default=str),
+                                    file=sys.stderr,
+                                )
+                            else:
+                                print(repr(result)[:2000], file=sys.stderr)
+                        except Exception:
+                            print(repr(result)[:2000], file=sys.stderr)
+
+                    return result
+                except Exception as exc:
+                    # Try to extract status from exception
+                    if hasattr(exc, "status"):
+                        status = str(exc.status)
+                    if DEBUG_ENABLED:
+                        import sys
+
+                        print(
+                            f"\n[DEBUG] {method} {resource_path} → ERROR {status}: {exc}",
+                            file=sys.stderr,
+                        )
+                    raise
+                finally:
+                    if TRACE_ENABLED:
+                        trace_logger.info(f"API | {method} | {resource_path} | {status} | - | -")
+
+            self.api_client.call_api = traced_call_api
 
         # V1 APIs
         self.monitors = monitors_api.MonitorsApi(self.api_client)
@@ -303,6 +362,7 @@ class DatadogClient:
         self.rum = rum_api.RUMApi(self.api_client)
         self.ci_pipelines = ci_visibility_pipelines_api.CIVisibilityPipelinesApi(self.api_client)
         self.ci_tests = ci_visibility_tests_api.CIVisibilityTestsApi(self.api_client)
+        self.llm_observability = llm_observability_api.LLMObservabilityApi(self.api_client)
 
         # DBM (direct HTTP — no dedicated SDK module)
         self.dbm = DBMClient(self.api_client)

@@ -1,6 +1,7 @@
 """Tests for incident commands."""
 
 import json
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from puppy_kit.commands.incident import incident
 
@@ -36,6 +37,13 @@ def _make_incident(
     return inc
 
 
+def _make_search_response(incidents, next_offset=None, offset=0, size=None):
+    """Create a mock search_incidents response."""
+    pagination = Mock(next_offset=next_offset, offset=offset, size=size if size is not None else len(incidents))
+    meta = Mock(pagination=pagination)
+    return Mock(included=incidents, meta=meta)
+
+
 class TestListIncidents:
     def test_list_incidents_table(self, mock_client, runner):
         """Test listing incidents in table format."""
@@ -43,8 +51,8 @@ class TestListIncidents:
             _make_incident("inc-1", "Service outage", "SEV-1", "active"),
             _make_incident("inc-2", "Degraded performance", "SEV-3", "stable"),
         ]
-        response = Mock(data=incidents)
-        mock_client.incidents.list_incidents.return_value = response
+        response = _make_search_response(incidents)
+        mock_client.incidents.search_incidents.return_value = response
 
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["list"])
@@ -55,8 +63,9 @@ class TestListIncidents:
         assert "active" in result.output
         assert "stable" in result.output
         assert "Total incidents: 2" in result.output
-        # Verify pagination was called with default parameters
-        mock_client.incidents.list_incidents.assert_called_with(page_size=10, page_offset=0)
+        mock_client.incidents.search_incidents.assert_called_with(
+            "", sort="-created", page_size=10, page_offset=0
+        )
 
     def test_list_incidents_json(self, mock_client, runner):
         """Test listing incidents in JSON format."""
@@ -64,8 +73,8 @@ class TestListIncidents:
             _make_incident("inc-1", "Service outage", "SEV-1", "active"),
             _make_incident("inc-2", "Degraded performance", "SEV-3", "stable"),
         ]
-        response = Mock(data=incidents)
-        mock_client.incidents.list_incidents.return_value = response
+        response = _make_search_response(incidents)
+        mock_client.incidents.search_incidents.return_value = response
 
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["list", "--format", "json"])
@@ -85,21 +94,103 @@ class TestListIncidents:
         assert output[1]["title"] == "Degraded performance"
         assert output[1]["severity"] == "SEV-3"
         assert output[1]["status"] == "stable"
-        # Verify pagination was called with default parameters
-        mock_client.incidents.list_incidents.assert_called_with(page_size=10, page_offset=0)
+        mock_client.incidents.search_incidents.assert_called_with(
+            "", sort="-created", page_size=10, page_offset=0
+        )
 
     def test_list_incidents_empty(self, mock_client, runner):
         """Test listing incidents when none exist."""
-        response = Mock(data=[])
-        mock_client.incidents.list_incidents.return_value = response
+        response = _make_search_response([])
+        mock_client.incidents.search_incidents.return_value = response
 
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(incident, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Total incidents: 0" in result.output
-        # Verify pagination was called with default parameters
-        mock_client.incidents.list_incidents.assert_called_with(page_size=10, page_offset=0)
+        mock_client.incidents.search_incidents.assert_called_with(
+            "", sort="-created", page_size=10, page_offset=0
+        )
+
+    def test_list_incidents_maps_status_into_query(self, mock_client, runner):
+        """Test status convenience filter is appended to the search query."""
+        mock_client.incidents.search_incidents.return_value = _make_search_response([])
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(
+                incident, ["list", "--query", "service:api env:prod", "--status", "active"]
+            )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_client.incidents.search_incidents.assert_called_with(
+            "service:api env:prod state:active", sort="-created", page_size=10, page_offset=0
+        )
+
+    def test_list_incidents_since_stops_early_and_filters_page(self, mock_client, runner):
+        """Test since cutoff filters the final page and stops pagination once older incidents appear."""
+        recent = _make_incident("inc-1", "Newest", "SEV-1", "active", created="2026-02-27T10:00:00Z")
+        keep = _make_incident("inc-2", "Keep", "SEV-2", "stable", created="2026-02-25T12:00:00Z")
+        old = _make_incident("inc-3", "Old", "SEV-3", "resolved", created="2026-02-24T23:59:59Z")
+        mock_client.incidents.search_incidents.side_effect = [
+            _make_search_response([recent], next_offset=100),
+            _make_search_response([keep, old], next_offset=200),
+        ]
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["list", "--format", "json", "--since", "2026-02-25"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        output = json.loads(result.output)
+        assert [item["id"] for item in output] == ["inc-1", "inc-2"]
+        assert mock_client.incidents.search_incidents.call_count == 2
+
+    def test_list_incidents_since_accepts_relative_hours(self, mock_client, runner):
+        """Test relative since parsing for hour-based cutoffs."""
+        recent = _make_incident("inc-1", "Recent", "SEV-1", "active", created="2026-03-11T10:00:00Z")
+        old = _make_incident("inc-2", "Old", "SEV-2", "resolved", created="2026-03-10T07:59:59Z")
+        mock_client.incidents.search_incidents.return_value = _make_search_response([recent, old])
+
+        class FixedDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 3, 11, 8, 0, 0, tzinfo=timezone.utc)
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.datetime", FixedDateTime):
+                result = runner.invoke(
+                    incident, ["list", "--format", "json", "--since", "24 hours"]
+                )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        output = json.loads(result.output)
+        assert [item["id"] for item in output] == ["inc-1"]
+
+    def test_list_incidents_rejects_invalid_since(self, mock_client, runner):
+        """Test invalid since formats fail before any API call."""
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["list", "--since", "yesterday-ish"])
+
+        assert result.exit_code != 0
+        assert "Invalid --since value" in result.output
+        mock_client.incidents.search_incidents.assert_not_called()
+
+    def test_list_incidents_rejects_malformed_since_date(self, mock_client, runner):
+        """Test malformed ISO date inputs fail early with a clear error."""
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["list", "--since", "2026-02-30"])
+
+        assert result.exit_code != 0
+        assert "Invalid --since value '2026-02-30'" in result.output
+        mock_client.incidents.search_incidents.assert_not_called()
+
+    def test_list_incidents_requires_desc_sort_with_since(self, mock_client, runner):
+        """Test since validation rejects ascending sort because early-stop pagination depends on newest-first ordering."""
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["list", "--since", "14 days", "--sort", "created"])
+
+        assert result.exit_code != 0
+        assert "--since requires --sort=-created" in result.output
+        mock_client.incidents.search_incidents.assert_not_called()
 
 
 class TestGetIncident:

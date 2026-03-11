@@ -4,13 +4,14 @@ import json
 from unittest.mock import Mock, patch
 
 
-def _create_mock_user(user_id, name, email, handle, status, disabled, created_at):
+def _create_mock_user(user_id, name, email, handle, status, disabled, created_at, title=None):
     """Create a mock user data object matching the UsersApi response shape."""
     attrs = Mock()
     attrs.name = name
     attrs.email = email
     attrs.handle = handle
     attrs.status = status
+    attrs.title = title
     attrs.disabled = disabled
     attrs.created_at = created_at
 
@@ -27,24 +28,62 @@ def test_list_users_table(mock_client, runner):
 
     users_data = [
         _create_mock_user(
-            "user-1", "Alice Smith", "alice@example.com", "alice", "Active", False, "2024-01-15"
+            "user-1",
+            "Alice Smith",
+            "alice@example.com",
+            "alice",
+            "Active",
+            False,
+            "2024-01-15",
+            title="Engineer",
         ),
         _create_mock_user(
-            "user-2", "Bob Jones", "bob@example.com", "bob", "Pending", False, "2024-02-20"
+            "user-2",
+            "Bob Jones",
+            "bob@example.com",
+            "bob",
+            "Pending",
+            False,
+            "2024-02-20",
+            title="Manager",
         ),
     ]
-    mock_client.users.list_users.return_value = Mock(data=users_data)
+    mock_client.users.list_users.side_effect = [Mock(data=users_data), Mock(data=[])]
 
     with patch("puppy_kit.commands.user.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(user, ["list"])
+        result = runner.invoke(user, ["list", "--page-size", "2"])
 
     assert result.exit_code == 0
     assert "Users" in result.output
+    assert "ID" in result.output
+    assert "Status" in result.output
+    assert "Email" in result.output
+    assert "Name" in result.output
+    assert "Title" in result.output
+    assert "Created" in result.output
     assert "Alice Smith" in result.output
     assert "alice@example.com" in result.output
+    assert "Engineer" in result.output
     assert "Bob Jones" in result.output
     assert "bob@example.com" in result.output
+    assert "Manager" in result.output
     assert "Total users: 2" in result.output
+    assert result.output.index("ID") < result.output.index("Status") < result.output.index(
+        "Email"
+    ) < result.output.index("Name") < result.output.index("Title") < result.output.index(
+        "Created"
+    )
+    assert mock_client.users.list_users.call_count == 2
+    mock_client.users.list_users.assert_any_call(
+        page_size=2,
+        page_number=0,
+        sort="name",
+    )
+    mock_client.users.list_users.assert_any_call(
+        page_size=2,
+        page_number=1,
+        sort="name",
+    )
 
 
 def test_list_users_json(mock_client, runner):
@@ -53,16 +92,30 @@ def test_list_users_json(mock_client, runner):
 
     users_data = [
         _create_mock_user(
-            "user-1", "Alice Smith", "alice@example.com", "alice", "Active", False, "2024-01-15"
+            "user-1",
+            "Alice Smith",
+            "alice@example.com",
+            "alice",
+            "Active",
+            False,
+            "2024-01-15",
+            title="Engineer",
         ),
         _create_mock_user(
-            "user-2", "Bob Jones", "bob@example.com", "bob", "Pending", False, "2024-02-20"
+            "user-2",
+            "Bob Jones",
+            "bob@example.com",
+            "bob",
+            "Pending",
+            False,
+            "2024-02-20",
+            title="Manager",
         ),
     ]
-    mock_client.users.list_users.return_value = Mock(data=users_data)
+    mock_client.users.list_users.side_effect = [Mock(data=users_data), Mock(data=[])]
 
     with patch("puppy_kit.commands.user.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(user, ["list", "--format", "json"])
+        result = runner.invoke(user, ["list", "--page-size", "2", "--format", "json"])
 
     assert result.exit_code == 0
     output = json.loads(result.output)
@@ -71,8 +124,21 @@ def test_list_users_json(mock_client, runner):
     assert output[0]["name"] == "Alice Smith"
     assert output[0]["email"] == "alice@example.com"
     assert output[0]["status"] == "Active"
+    assert output[0]["title"] == "Engineer"
     assert output[1]["id"] == "user-2"
     assert output[1]["name"] == "Bob Jones"
+    assert output[1]["title"] == "Manager"
+    assert mock_client.users.list_users.call_count == 2
+    mock_client.users.list_users.assert_any_call(
+        page_size=2,
+        page_number=0,
+        sort="name",
+    )
+    mock_client.users.list_users.assert_any_call(
+        page_size=2,
+        page_number=1,
+        sort="name",
+    )
 
 
 def test_get_user_table(mock_client, runner):
@@ -196,3 +262,8 @@ def test_list_users_empty(mock_client, runner):
 
     assert result.exit_code == 0
     assert "Total users: 0" in result.output
+    mock_client.users.list_users.assert_called_once_with(
+        page_size=100,
+        page_number=0,
+        sort="name",
+    )

@@ -88,8 +88,8 @@ def init_config():
     app_key = click.prompt("App Key", hide_input=True)
     site = click.prompt("Site (us, eu, us3, us5, ap1, gov, or full domain)", default="us")
     ops_profile = click.prompt(
-        "Ops profile (triage or full)",
-        type=click.Choice(["triage", "full"]),
+        "Ops profile (triage, active, or full)",
+        type=click.Choice(["triage", "full", "active"]),
         default="triage",
     )
     profile_name = click.prompt("Profile name", default="default")
@@ -125,7 +125,7 @@ def init_config():
 @click.option("--site", default="us", help="Datadog site (us, eu, us3, us5, ap1, gov, or domain)")
 @click.option(
     "--ops-profile",
-    type=click.Choice(["triage", "full"]),
+    type=click.Choice(["triage", "full", "active"]),
     default="triage",
     show_default=True,
     help="Ops profile mode",
