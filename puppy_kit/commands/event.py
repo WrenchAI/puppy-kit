@@ -24,11 +24,12 @@ def event():
 @click.option("--sources", help="Event sources (comma-separated, e.g., alert,deploy)")
 @click.option("--priority", type=click.Choice(["normal", "low"]), help="Event priority")
 @click.option("--tags", help="Filter by tags (comma-separated)")
+@click.option("--limit", default=100, type=int, help="Max events to return [default: 100]")
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def list_events(from_time, to_time, sources, priority, tags, format):
+def list_events(from_time, to_time, sources, priority, tags, limit, format):
     """List events."""
     client = get_datadog_client()
 
@@ -43,6 +44,8 @@ def list_events(from_time, to_time, sources, priority, tags, format):
             kwargs["priority"] = priority
         if tags:
             kwargs["tags"] = tags
+        # limit maps to page_size in Datadog Events API
+        kwargs["page_size"] = limit
 
         result = client.events.list_events(**kwargs)
 

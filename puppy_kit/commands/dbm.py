@@ -7,7 +7,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
-from puppy_kit.utils.format import json_list_response
+from puppy_kit.utils.format import json_list_response, truncate
 
 console = Console()
 
@@ -133,7 +133,7 @@ def list_queries(from_time, to_time, service, database, sort_by, limit, format):
 
             table.add_row(
                 q.query_id,
-                q.normalized_query[:50],
+                truncate(q.normalized_query, 80),
                 f"{avg_latency_ms:.2f}",
                 str(q.calls),
                 f"{total_time_ms:.2f}",

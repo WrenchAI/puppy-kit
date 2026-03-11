@@ -22,22 +22,25 @@ def dashboard():
 
 @dashboard.command(name="list")
 @click.option("--tags", help="Filter by tags (comma-separated)")
+@click.option("--limit", default=100, type=int, help="Max dashboards to return [default: 100]")
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def list_dashboards(tags, format):
+def list_dashboards(tags, limit, format):
     """List all dashboards."""
     client = get_datadog_client()
 
     kwargs = {}
     if tags:
         kwargs["filter_configured"] = tags
+    kwargs["page_size"] = limit
 
     with console.status("[cyan]Fetching dashboards...[/cyan]"):
         response = client.dashboards.list_dashboards(**kwargs)
 
     dashboards_list = response.dashboards or []
+    dashboards_list = dashboards_list[:limit]
 
     if format == "json":
         output = []

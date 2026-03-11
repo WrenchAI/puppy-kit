@@ -61,11 +61,12 @@ def downtime():
 
 @downtime.command(name="list")
 @click.option("--current-only", is_flag=True, help="Show only currently active downtimes")
+@click.option("--limit", default=100, type=int, help="Max downtimes to return [default: 100]")
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def list_downtimes(current_only, format):
+def list_downtimes(current_only, limit, format):
     """List all downtimes."""
     client = get_datadog_client()
 
@@ -75,6 +76,8 @@ def list_downtimes(current_only, format):
 
     with console.status("[cyan]Fetching downtimes...[/cyan]"):
         downtimes = client.downtimes.list_downtimes(**kwargs)
+
+    downtimes = downtimes[:limit]
 
     if format == "json":
         click.echo(json.dumps(json_list_response([d.to_dict() for d in downtimes])))

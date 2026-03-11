@@ -19,7 +19,7 @@ def host():
 
 @host.command(name="list")
 @click.option("--filter", help="Filter hosts (e.g., service:web)")
-@click.option("--limit", default=100, help="Maximum hosts to show")
+@click.option("--limit", default=50, type=int, help="Maximum hosts to show [default: 50]")
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )

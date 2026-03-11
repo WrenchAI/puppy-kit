@@ -88,7 +88,7 @@ def test_host_list_with_filter(mock_client, runner):
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify API was called with filter
-        mock_client.hosts.list_hosts.assert_called_once_with(filter="service:web", count=100)
+        mock_client.hosts.list_hosts.assert_called_once_with(filter="service:web", count=50)
 
         # Parse JSON output
         import json

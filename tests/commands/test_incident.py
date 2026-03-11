@@ -66,7 +66,7 @@ class TestListIncidents:
         assert "stable" in result.output
         assert "Total incidents: 2" in result.output
         mock_client.incidents.search_incidents.assert_called_with(
-            "", sort="-created", page_size=10, page_offset=0
+            "", sort="-created", page_size=100, page_offset=0
         )
 
     def test_list_incidents_json(self, mock_client, runner):
@@ -97,7 +97,7 @@ class TestListIncidents:
         assert output[1]["severity"] == "SEV-3"
         assert output[1]["status"] == "stable"
         mock_client.incidents.search_incidents.assert_called_with(
-            "", sort="-created", page_size=10, page_offset=0
+            "", sort="-created", page_size=100, page_offset=0
         )
 
     def test_list_incidents_empty(self, mock_client, runner):
@@ -111,7 +111,7 @@ class TestListIncidents:
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Total incidents: 0" in result.output
         mock_client.incidents.search_incidents.assert_called_with(
-            "", sort="-created", page_size=10, page_offset=0
+            "", sort="-created", page_size=100, page_offset=0
         )
 
     def test_list_incidents_maps_status_into_query(self, mock_client, runner):
@@ -125,7 +125,7 @@ class TestListIncidents:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         mock_client.incidents.search_incidents.assert_called_with(
-            "service:api env:prod state:active", sort="-created", page_size=10, page_offset=0
+            "service:api env:prod state:active", sort="-created", page_size=100, page_offset=0
         )
 
     def test_list_incidents_since_stops_early_and_filters_page(self, mock_client, runner):

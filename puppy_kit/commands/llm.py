@@ -219,6 +219,7 @@ def llm():
     help="Time window: Nh (hours) or Nd (days), e.g. 1h, 24h, 2d",
 )
 @click.option("--page-size", type=int, default=25, show_default=True)
+@click.option("--verbose", is_flag=True, default=False, help="Show input/output messages")
 @click.option(
     "--format", "fmt", type=click.Choice(["json", "table"]), default="table", show_default=True
 )
@@ -229,6 +230,7 @@ def traces(
     model: str | None,
     from_: str,
     page_size: int,
+    verbose: bool,
     fmt: str,
 ) -> None:
     """Query LLM Observability spans via the Export API (inputs, outputs, tokens, cost)."""
@@ -329,6 +331,11 @@ def traces(
 
     # Output as JSON or table
     if fmt == "json":
+        # Remove input/output from JSON unless verbose
+        if not verbose:
+            output = [
+                {k: v for k, v in item.items() if k not in ("input", "output")} for item in output
+            ]
         click.echo(json.dumps(json_list_response(output), default=str))
     else:
         table = Table(title="LLM Observability Traces")
@@ -339,11 +346,12 @@ def traces(
         table.add_column("In Tok", justify="right", style="yellow", width=10)
         table.add_column("Out Tok", justify="right", style="yellow", width=10)
         table.add_column("Duration", justify="right", style="yellow", width=12)
-        table.add_column("Input", style="white", width=60)
-        table.add_column("Output", style="white", width=60)
+        if verbose:
+            table.add_column("Input", style="white", width=60)
+            table.add_column("Output", style="white", width=60)
 
         for item in output:
-            table.add_row(
+            row_data = [
                 _truncate(item["kind"], 12),
                 _truncate(item["status"], 8),
                 _truncate(item["model"], 16),
@@ -351,9 +359,15 @@ def traces(
                 str(item["input_tokens"]),
                 str(item["output_tokens"]),
                 f"{item['duration']:.2f} ms",
-                _truncate(item["input"], 60),
-                _truncate(item["output"], 60),
-            )
+            ]
+            if verbose:
+                row_data.extend(
+                    [
+                        _truncate(item["input"], 200),
+                        _truncate(item["output"], 200),
+                    ]
+                )
+            table.add_row(*row_data)
 
         console.print(table)
         console.print(f"\n[dim]Total traces: {len(output)}[/dim]")

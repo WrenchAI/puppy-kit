@@ -65,7 +65,9 @@ def incident():
     default=None,
     help="Convenience filter mapped to a state:<value> search query fragment",
 )
-@click.option("--page-size", type=int, default=10, help="Page size for results")
+@click.option(
+    "--limit", "page_size", type=int, default=100, help="Max incidents to return [default: 100]"
+)
 @click.option("--query", default="", help="Datadog incident search query using facet syntax")
 @click.option(
     "--sort",
