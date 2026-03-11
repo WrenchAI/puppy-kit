@@ -6,16 +6,29 @@ from puppy_kit.commands.incident import incident
 
 
 def _make_incident(
-    id, title, severity, status, created="2026-01-15T10:00:00Z", modified="2026-01-15T12:00:00Z"
+    id,
+    title,
+    severity,
+    status,
+    created="2026-01-15T10:00:00Z",
+    modified="2026-01-15T12:00:00Z",
+    customer_impacted=False,
+    public_id="pub-1",
+    detected="2026-01-15T09:55:00Z",
+    resolved=None,
 ):
     """Create a mock incident object."""
     inc = Mock()
     inc.id = id
     inc.type = "incidents"
+    inc.public_id = public_id
     inc.attributes = Mock(
         title=title,
         severity=severity,
         status=status,
+        customer_impacted=customer_impacted,
+        detected=detected,
+        resolved=resolved,
         created=created,
         modified=modified,
         fields={},
@@ -37,11 +50,13 @@ class TestListIncidents:
             result = runner.invoke(incident, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Service outage" in result.output
-        assert "Degraded performance" in result.output
-        assert "SEV-1" in result.output
-        assert "SEV-3" in result.output
+        assert "inc-1" in result.output
+        assert "inc-2" in result.output
+        assert "active" in result.output
+        assert "stable" in result.output
         assert "Total incidents: 2" in result.output
+        # Verify pagination was called with default parameters
+        mock_client.incidents.list_incidents.assert_called_with(page_size=10, page_offset=0)
 
     def test_list_incidents_json(self, mock_client, runner):
         """Test listing incidents in JSON format."""
@@ -62,7 +77,16 @@ class TestListIncidents:
         assert output[0]["title"] == "Service outage"
         assert output[0]["severity"] == "SEV-1"
         assert output[0]["status"] == "active"
+        assert output[0]["customer_impacted"] is False
+        assert output[0]["public_id"] == "pub-1"
+        assert output[0]["detected"] == "2026-01-15T09:55:00Z"
+        assert output[0]["resolved"] == "unknown"
         assert output[1]["id"] == "inc-2"
+        assert output[1]["title"] == "Degraded performance"
+        assert output[1]["severity"] == "SEV-3"
+        assert output[1]["status"] == "stable"
+        # Verify pagination was called with default parameters
+        mock_client.incidents.list_incidents.assert_called_with(page_size=10, page_offset=0)
 
     def test_list_incidents_empty(self, mock_client, runner):
         """Test listing incidents when none exist."""
@@ -74,6 +98,8 @@ class TestListIncidents:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Total incidents: 0" in result.output
+        # Verify pagination was called with default parameters
+        mock_client.incidents.list_incidents.assert_called_with(page_size=10, page_offset=0)
 
 
 class TestGetIncident:
@@ -119,7 +145,8 @@ class TestCreateIncident:
 
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
-                incident, ["create", "--title", "New outage", "--severity", "SEV-2"]
+                incident,
+                ["create", "--title", "New outage", "--severity", "SEV-2", "--team", "ops"],
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -137,7 +164,17 @@ class TestCreateIncident:
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
                 incident,
-                ["create", "--title", "New outage", "--severity", "SEV-2", "--format", "json"],
+                [
+                    "create",
+                    "--title",
+                    "New outage",
+                    "--severity",
+                    "SEV-2",
+                    "--team",
+                    "ops",
+                    "--format",
+                    "json",
+                ],
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -153,7 +190,7 @@ class TestCreateIncident:
 
     def test_create_incident_missing_severity(self, runner):
         """Test that create fails without required --severity."""
-        result = runner.invoke(incident, ["create", "--title", "Outage"])
+        result = runner.invoke(incident, ["create", "--title", "Outage", "--team", "ops"])
         assert result.exit_code != 0
         assert "Missing" in result.output or "required" in result.output.lower()
 
@@ -193,6 +230,21 @@ class TestUpdateIncident:
         result = runner.invoke(incident, ["update", "inc-1"])
         assert result.exit_code != 0
         assert "No update fields" in result.output
+
+    def test_update_incident_assignee(self, mock_client, runner):
+        """Test updating an incident with assignee."""
+        inc = _make_incident("inc-1", "Service outage", "SEV-1", "active")
+        inc.attributes.assignee = "muhammad"
+        response = Mock(data=inc)
+        mock_client.incidents.update_incident.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["update", "inc-1", "--assignee", "muhammad"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "updated" in result.output
+        assert "muhammad" in result.output
+        mock_client.incidents.update_incident.assert_called_once()
 
 
 class TestDeleteIncident:

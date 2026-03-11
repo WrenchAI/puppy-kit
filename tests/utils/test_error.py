@@ -174,12 +174,15 @@ class TestHandleApiError:
         assert mock_sleep.call_count == 2
 
         # Final error should go through emit_error
-        mock_emit_error.assert_called_once_with(
-            "RATE_LIMITED",
-            429,
-            "Rate limited after retries",
-            "Try again later or reduce request frequency",
-        )
+        mock_emit_error.assert_called_once()
+        args = mock_emit_error.call_args[0]
+        assert args[0] == "RATE_LIMITED"
+        assert args[1] == 429
+        assert "Rate limited after 3 retries" in args[2]
+        assert "Suggested wait:" in args[2]
+        wait_fragment = args[2].split("Suggested wait:", 1)[1].strip().split()[0]
+        assert wait_fragment[:-1].isdigit() and wait_fragment.endswith("+")
+        assert args[3] == "Try again later or reduce request frequency"
 
     def test_500_server_error_with_retry(self, mock_console, mock_emit_error, mock_sleep):
         """Test that 5xx errors trigger retry."""

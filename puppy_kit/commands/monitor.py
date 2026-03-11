@@ -34,7 +34,7 @@ def _build_monitor_table(monitors):
     table = Table(title="Datadog Monitors", show_lines=False)
     table.add_column("ID", style="cyan", width=10)
     table.add_column("State", style="bold", width=10)
-    table.add_column("Name", style="white", min_width=30)
+    table.add_column("Name", style="white", min_width=30, overflow="fold")
     table.add_column("Tags", style="dim", width=30)
 
     for m in monitors:
@@ -55,7 +55,7 @@ def _build_monitor_table(monitors):
         table.add_row(
             str(m.id),
             f"[{state_color}]{state_str}[/{state_color}]",
-            m.name[:60] if m.name else "",
+            m.name if m.name else "",
             tag_display,
         )
 

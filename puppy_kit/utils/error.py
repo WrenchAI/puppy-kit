@@ -64,10 +64,12 @@ def handle_api_error(func):
                         time.sleep(wait_time)
                         continue
                     else:
+                        wait_time = retry_delay * (2**retries)
+                        suggested_wait = max(wait_time, 30)
                         emit_error(
                             "RATE_LIMITED",
                             429,
-                            "Rate limited after retries",
+                            f"Rate limited after {retries} retries. Suggested wait: {suggested_wait:.0f}+ seconds.",
                             "Try again later or reduce request frequency",
                         )
                         sys.exit(RATE_LIMITED)
