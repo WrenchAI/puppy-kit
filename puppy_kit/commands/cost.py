@@ -60,8 +60,8 @@ def _call_billing_api(
     if api_client is None:
         raise RuntimeError("Datadog API client is not configured for raw billing calls.")
     response = api_client.call_api(
-        "GET",
         path,
+        "GET",
         query_params=query_params,
         header_params={"Accept": "application/json"},
     )

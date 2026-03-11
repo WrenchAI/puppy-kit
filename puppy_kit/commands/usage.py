@@ -103,8 +103,12 @@ def summary(from_date, to_date, format):
     start_d = _parse_date(from_date, default_days_ago=7)
     end_d = _parse_date(to_date, default_days_ago=0)
 
+    # SDK expects datetime objects, convert date to datetime
+    start_dt = datetime.combine(start_d, datetime.min.time())
+    end_dt = datetime.combine(end_d, datetime.min.time())
+
     with console.status("[cyan]Fetching usage summary...[/cyan]"):
-        response = client.usage.get_usage_summary(start_d=start_d, end_d=end_d)
+        response = client.usage.get_usage_summary(start_month=start_dt, end_month=end_dt)
 
     if format == "json":
         data = {

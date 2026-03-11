@@ -70,6 +70,7 @@ def _build_monitor_table(monitors):
     multiple=True,
     help="Filter by state",
 )
+@click.option("--limit", type=int, default=None, help="Max monitors to return")
 @click.option(
     "--format",
     type=click.Choice(["json", "table", "markdown"]),
@@ -79,7 +80,7 @@ def _build_monitor_table(monitors):
 @click.option("--watch", is_flag=True, default=False, help="Auto-refresh at intervals")
 @click.option("--interval", type=int, default=30, help="Refresh interval in seconds (default: 30)")
 @handle_api_error
-def list_monitors(tags, state, format, watch, interval):
+def list_monitors(tags, state, limit, format, watch, interval):
     """List all monitors (equivalent to dogshell's show_all)."""
     client = get_datadog_client()
 
@@ -89,6 +90,8 @@ def list_monitors(tags, state, format, watch, interval):
         if tags:
             kwargs["tags"] = tags
         monitors = client.monitors.list_monitors(**kwargs)
+        if limit:
+            monitors = monitors[:limit]
         if state:
             monitors = [m for m in monitors if str(m.overall_state) in state]
         return monitors

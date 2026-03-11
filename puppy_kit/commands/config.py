@@ -280,7 +280,7 @@ def test_credentials():
     try:
         client = get_datadog_client()
         # Make a cheap read-only call to test credentials
-        client.monitors.list_monitors(limit=1)
+        client.monitors.list_monitors()
     except Exception as e:
         # Check if it's an auth error
         error_msg = str(e).lower()

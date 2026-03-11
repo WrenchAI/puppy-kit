@@ -1,0 +1,79 @@
+# Taskfile for puppy-kit development tasks
+# Usage: task [taskname]
+# Full documentation: https://taskfile.dev
+
+version: "3"
+
+vars:
+  PYTEST_FLAGS: "-v"
+  COV_FLAGS: "--cov=puppy_kit --cov-report=html --cov-report=term-missing"
+  RUFF_PATHS: "puppy_kit/ tests/"
+
+tasks:
+  # Run static (unit) tests only — no credentials needed
+  test:
+    desc: "Run static tests (alias: test-static)"
+    cmds:
+      - uv run pytest tests/ --ignore=tests/test_integration.py {{.PYTEST_FLAGS}}
+
+  test-static:
+    desc: "Run static tests only — no credentials needed"
+    cmds:
+      - uv run pytest tests/ --ignore=tests/test_integration.py {{.PYTEST_FLAGS}}
+
+  # Run live (integration) tests — requires DD_API_KEY + DD_APP_KEY
+  test-live:
+    desc: "Run live integration tests — requires DD_API_KEY + DD_APP_KEY"
+    cmds:
+      - uv run pytest tests/test_integration.py {{.PYTEST_FLAGS}}
+
+  # Run ALL tests (static + live)
+  test-all:
+    desc: "Run all tests (static + live)"
+    cmds:
+      - uv run pytest tests/ {{.PYTEST_FLAGS}}
+
+  # Static tests with HTML coverage report
+  test-static-cov:
+    desc: "Run static tests with coverage report"
+    cmds:
+      - uv run pytest tests/ --ignore=tests/test_integration.py {{.PYTEST_FLAGS}} {{.COV_FLAGS}}
+
+  # Live tests with HTML coverage report
+  test-live-cov:
+    desc: "Run live tests with coverage report"
+    cmds:
+      - uv run pytest tests/test_integration.py {{.PYTEST_FLAGS}} {{.COV_FLAGS}}
+
+  # Full coverage (both suites combined)
+  test-cov:
+    desc: "Run all tests with coverage report"
+    cmds:
+      - uv run pytest tests/ {{.PYTEST_FLAGS}} {{.COV_FLAGS}}
+
+  # Lint with ruff
+  lint:
+    desc: "Run ruff linter"
+    cmds:
+      - uv run ruff check {{.RUFF_PATHS}}
+
+  # Format with ruff
+  fmt:
+    desc: "Format code with ruff"
+    cmds:
+      - uv run ruff format {{.RUFF_PATHS}}
+
+  # Format + lint together
+  check:
+    desc: "Format + lint code"
+    cmds:
+      - task: fmt
+      - task: lint
+
+  # Run ruff format + check + all static tests (pre-commit style)
+  ci:
+    desc: "Run pre-commit style checks: format + lint + static tests"
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: test-static

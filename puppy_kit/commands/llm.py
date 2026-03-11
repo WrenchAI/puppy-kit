@@ -218,6 +218,7 @@ def llm():
     show_default=True,
     help="Time window: Nh (hours) or Nd (days), e.g. 1h, 24h, 2d",
 )
+@click.option("--limit", type=int, default=None, help="Max traces to return (alias for --page-size)")
 @click.option("--page-size", type=int, default=25, show_default=True)
 @click.option("--verbose", is_flag=True, default=False, help="Show input/output messages")
 @click.option(
@@ -229,12 +230,17 @@ def traces(
     span_kind: str | None,
     model: str | None,
     from_: str,
+    limit: int | None,
     page_size: int,
     verbose: bool,
     fmt: str,
 ) -> None:
     """Query LLM Observability spans via the Export API (inputs, outputs, tokens, cost)."""
     client = get_datadog_client()
+
+    # Use limit as alias for page_size if provided
+    if limit is not None:
+        page_size = limit
 
     # Parse time range to UTC ISO 8601
     from_ts, to_ts = parse_time_range(from_)

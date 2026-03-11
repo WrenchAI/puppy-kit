@@ -34,7 +34,6 @@ def list_dashboards(tags, limit, format):
     kwargs = {}
     if tags:
         kwargs["filter_configured"] = tags
-    kwargs["page_size"] = limit
 
     with console.status("[cyan]Fetching dashboards...[/cyan]"):
         response = client.dashboards.list_dashboards(**kwargs)

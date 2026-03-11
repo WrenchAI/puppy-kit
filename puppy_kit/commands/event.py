@@ -44,14 +44,16 @@ def list_events(from_time, to_time, sources, priority, tags, limit, format):
             kwargs["priority"] = priority
         if tags:
             kwargs["tags"] = tags
-        # limit maps to page_size in Datadog Events API
-        kwargs["page_size"] = limit
+
 
         result = client.events.list_events(**kwargs)
 
     if not result.events:
         console.print("[yellow]No events found[/yellow]")
         return
+
+    # Apply limit client-side
+    result.events = result.events[:limit]
 
     if format == "table":
         table = Table(title=f"Events (last {from_time})", show_lines=False)

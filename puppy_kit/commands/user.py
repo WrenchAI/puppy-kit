@@ -19,6 +19,7 @@ def user():
 
 
 @user.command(name="list")
+@click.option("--limit", type=click.IntRange(min=1), default=None, help="Max users to fetch (alias for --page-size)")
 @click.option(
     "--page-size",
     type=click.IntRange(min=1),
@@ -49,9 +50,13 @@ def user():
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def list_users(page_size, filter_text, filter_status, sort, all_pages, format):
+def list_users(limit, page_size, filter_text, filter_status, sort, all_pages, format):
     """List all users in the organization."""
     client = get_datadog_client()
+
+    # Use limit as alias for page_size if provided
+    if limit is not None:
+        page_size = limit
 
     with console.status("[cyan]Fetching users...[/cyan]"):
         users_data = []
