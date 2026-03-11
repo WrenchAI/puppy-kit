@@ -6,11 +6,12 @@ from rich.console import Console
 from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 
 console = Console()
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def synthetics():
     """Synthetics test management commands."""
     pass
@@ -160,6 +161,7 @@ def get_results(public_id, format):
         console.print(f"\n[dim]Total results: {len(results)}[/dim]")
 
 
+@full_mode_only
 @synthetics.command(name="trigger")
 @click.argument("public_id")
 @click.option("--format", type=click.Choice(["json", "table"]), default="table")

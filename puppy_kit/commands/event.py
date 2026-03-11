@@ -6,12 +6,13 @@ from rich.console import Console
 from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 from puppy_kit.utils.time import parse_time_range
 
 console = Console()
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def event():
     """Event query commands."""
     pass
@@ -103,6 +104,7 @@ def get_event(event_id):
         console.print(f"[bold]Tags:[/bold] {', '.join(evt.event.tags)}")
 
 
+@full_mode_only
 @event.command(name="post")
 @click.argument("title")
 @click.option("--text", help="Event text/body")

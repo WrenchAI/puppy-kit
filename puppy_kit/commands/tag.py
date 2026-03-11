@@ -7,11 +7,12 @@ from rich.table import Table
 from datadog_api_client.v1.model.host_tags import HostTags
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 
 console = Console()
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def tag():
     """Tag management commands."""
     pass
@@ -55,6 +56,7 @@ def list_tags(host, source, fmt):
         console.print(f"\n[dim]Total tags: {len(tags)}[/dim]")
 
 
+@full_mode_only
 @tag.command(name="add")
 @click.argument("host")
 @click.argument("tags", nargs=-1, required=True)
@@ -84,6 +86,7 @@ def add_tags(host, tags, source):
         console.print(f"  [cyan]{t}[/cyan]")
 
 
+@full_mode_only
 @tag.command(name="replace")
 @click.argument("host")
 @click.argument("tags", nargs=-1, required=True)
@@ -113,6 +116,7 @@ def replace_tags(host, tags, source):
         console.print(f"  [cyan]{t}[/cyan]")
 
 
+@full_mode_only
 @tag.command(name="detach")
 @click.argument("host")
 @click.option("--source", help="Tag source to detach (e.g., users, chef, puppet)")

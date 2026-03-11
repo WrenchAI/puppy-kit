@@ -99,12 +99,12 @@ class TestApplyCommand:
     """Tests for the apply command."""
 
     def test_apply_requires_file_option(self, runner):
-        result = runner.invoke(apply_cmd, [])
+        result = runner.invoke(apply_cmd, [], obj={"profile": None, "ops_profile": "full"})
         assert result.exit_code != 0
         assert "Missing option" in result.output or "required" in result.output.lower()
 
     def test_apply_file_not_found(self, runner):
-        result = runner.invoke(apply_cmd, ["-f", "/nonexistent/file.json"])
+        result = runner.invoke(apply_cmd, ["-f", "/nonexistent/file.json"], obj={"profile": None, "ops_profile": "full"})
         assert result.exit_code != 0
         assert "not found" in result.output.lower() or "Error" in result.output
 
@@ -112,14 +112,14 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("bad.json", "w") as f:
                 f.write("not valid json{{{")
-            result = runner.invoke(apply_cmd, ["-f", "bad.json"])
+            result = runner.invoke(apply_cmd, ["-f", "bad.json"], obj={"profile": None, "ops_profile": "full"})
             assert result.exit_code != 0
 
     def test_apply_unrecognized_resource(self, runner):
         with runner.isolated_filesystem():
             with open("unknown.json", "w") as f:
                 json.dump({"foo": "bar"}, f)
-            result = runner.invoke(apply_cmd, ["-f", "unknown.json"])
+            result = runner.invoke(apply_cmd, ["-f", "unknown.json"], obj={"profile": None, "ops_profile": "full"})
             assert result.exit_code != 0
             assert "Cannot detect resource type" in result.output
 
@@ -142,7 +142,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("monitor.json", "w") as f:
                 json.dump(monitor_data, f)
-            result = runner.invoke(apply_cmd, ["-f", "monitor.json"])
+            result = runner.invoke(apply_cmd, ["-f", "monitor.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "create" in result.output.lower()
@@ -168,7 +168,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("monitor.json", "w") as f:
                 json.dump(monitor_data, f)
-            result = runner.invoke(apply_cmd, ["-f", "monitor.json"])
+            result = runner.invoke(apply_cmd, ["-f", "monitor.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "update" in result.output.lower()
@@ -191,7 +191,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("dash.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "dash.json"])
+            result = runner.invoke(apply_cmd, ["-f", "dash.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "create" in result.output.lower()
@@ -212,7 +212,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("dash.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "dash.json"])
+            result = runner.invoke(apply_cmd, ["-f", "dash.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "update" in result.output.lower()
@@ -240,7 +240,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("slo.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "slo.json"])
+            result = runner.invoke(apply_cmd, ["-f", "slo.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "create" in result.output.lower()
@@ -267,7 +267,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("slo.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "slo.json"])
+            result = runner.invoke(apply_cmd, ["-f", "slo.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "update" in result.output.lower()
@@ -289,7 +289,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("downtime.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "downtime.json"])
+            result = runner.invoke(apply_cmd, ["-f", "downtime.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "create" in result.output.lower()
@@ -309,7 +309,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("downtime.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "downtime.json"])
+            result = runner.invoke(apply_cmd, ["-f", "downtime.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "update" in result.output.lower()
@@ -329,7 +329,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("monitor.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "monitor.json", "--dry-run"])
+            result = runner.invoke(apply_cmd, ["-f", "monitor.json", "--dry-run"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "DRY RUN" in result.output
@@ -347,7 +347,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("monitor.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "monitor.json", "--dry-run"])
+            result = runner.invoke(apply_cmd, ["-f", "monitor.json", "--dry-run"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "DRY RUN" in result.output
@@ -360,7 +360,7 @@ class TestApplyCommand:
         with runner.isolated_filesystem():
             with open("dash.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(apply_cmd, ["-f", "dash.json", "--dry-run"])
+            result = runner.invoke(apply_cmd, ["-f", "dash.json", "--dry-run"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "DRY RUN" in result.output
@@ -392,7 +392,7 @@ class TestApplyCommand:
             with open("resources/readme.txt", "w") as f:
                 f.write("not json")
 
-            result = runner.invoke(apply_cmd, ["-f", "resources", "--recursive"])
+            result = runner.invoke(apply_cmd, ["-f", "resources", "--recursive"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert mock_client.monitors.create_monitor.called
@@ -405,14 +405,14 @@ class TestApplyCommand:
             with open("resources/monitor.json", "w") as f:
                 json.dump({"name": "Test", "type": "metric alert", "query": "q"}, f)
 
-            result = runner.invoke(apply_cmd, ["-f", "resources"])
+            result = runner.invoke(apply_cmd, ["-f", "resources"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code != 0
 
     def test_apply_recursive_empty_directory(self, runner):
         with runner.isolated_filesystem():
             os.makedirs("empty_dir")
-            result = runner.invoke(apply_cmd, ["-f", "empty_dir", "--recursive"])
+            result = runner.invoke(apply_cmd, ["-f", "empty_dir", "--recursive"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code != 0 or "No JSON files" in result.output
 
@@ -425,7 +425,7 @@ class TestApplyCommand:
             with open("resources/dash.json", "w") as f:
                 json.dump({"title": "Dash", "layout_type": "ordered", "widgets": []}, f)
 
-            result = runner.invoke(apply_cmd, ["-f", "resources", "--recursive", "--dry-run"])
+            result = runner.invoke(apply_cmd, ["-f", "resources", "--recursive", "--dry-run"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "DRY RUN" in result.output
@@ -440,11 +440,11 @@ class TestDiffCommand:
     """Tests for the diff command."""
 
     def test_diff_requires_file_option(self, runner):
-        result = runner.invoke(diff_cmd, [])
+        result = runner.invoke(diff_cmd, [], obj={"profile": None, "ops_profile": "full"})
         assert result.exit_code != 0
 
     def test_diff_file_not_found(self, runner):
-        result = runner.invoke(diff_cmd, ["-f", "/nonexistent/file.json"])
+        result = runner.invoke(diff_cmd, ["-f", "/nonexistent/file.json"], obj={"profile": None, "ops_profile": "full"})
         assert result.exit_code != 0
 
     def test_diff_requires_id_in_file(self, runner):
@@ -454,7 +454,7 @@ class TestDiffCommand:
         with runner.isolated_filesystem():
             with open("monitor.json", "w") as f:
                 json.dump(data, f)
-            result = runner.invoke(diff_cmd, ["-f", "monitor.json"])
+            result = runner.invoke(diff_cmd, ["-f", "monitor.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code != 0
         assert "id" in result.output.lower()
@@ -481,7 +481,7 @@ class TestDiffCommand:
         with runner.isolated_filesystem():
             with open("monitor.json", "w") as f:
                 json.dump(local_data, f)
-            result = runner.invoke(diff_cmd, ["-f", "monitor.json"])
+            result = runner.invoke(diff_cmd, ["-f", "monitor.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         # Should show differences between local and live
@@ -503,7 +503,7 @@ class TestDiffCommand:
         with runner.isolated_filesystem():
             with open("monitor.json", "w") as f:
                 json.dump(live_data, f)
-            result = runner.invoke(diff_cmd, ["-f", "monitor.json"])
+            result = runner.invoke(diff_cmd, ["-f", "monitor.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         assert "no differences" in result.output.lower() or "identical" in result.output.lower()
@@ -530,7 +530,7 @@ class TestDiffCommand:
         with runner.isolated_filesystem():
             with open("dash.json", "w") as f:
                 json.dump(local_data, f)
-            result = runner.invoke(diff_cmd, ["-f", "dash.json"])
+            result = runner.invoke(diff_cmd, ["-f", "dash.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         mock_client.dashboards.get_dashboard.assert_called_once_with("abc-123")
@@ -559,7 +559,7 @@ class TestDiffCommand:
         with runner.isolated_filesystem():
             with open("slo.json", "w") as f:
                 json.dump(local_data, f)
-            result = runner.invoke(diff_cmd, ["-f", "slo.json"])
+            result = runner.invoke(diff_cmd, ["-f", "slo.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         mock_client.slos.get_slo.assert_called_once_with("slo-abc")
@@ -584,7 +584,7 @@ class TestDiffCommand:
         with runner.isolated_filesystem():
             with open("downtime.json", "w") as f:
                 json.dump(local_data, f)
-            result = runner.invoke(diff_cmd, ["-f", "downtime.json"])
+            result = runner.invoke(diff_cmd, ["-f", "downtime.json"], obj={"profile": None, "ops_profile": "full"})
 
         assert result.exit_code == 0
         mock_client.downtimes.get_downtime.assert_called_once_with(9876)

@@ -9,12 +9,13 @@ from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
 from puppy_kit.utils.confirm import confirm_action
 from puppy_kit.utils.export import export_to_json
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
 
 console = Console()
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def dashboard():
     """Dashboard management commands."""
     pass
@@ -108,6 +109,7 @@ def get_dashboard(dashboard_id, format):
         console.print(f"[bold]Widgets:[/bold] {widget_count}")
 
 
+@full_mode_only
 @dashboard.command(name="create")
 @click.option("--title", default=None, help="Dashboard title")
 @click.option(
@@ -177,6 +179,7 @@ def create_dashboard_cmd(title, layout_type, description, file_data, from_stdin,
         console.print(f"[bold]Title:[/bold] {result.title}")
 
 
+@full_mode_only
 @dashboard.command(name="update")
 @click.argument("dashboard_id")
 @click.option(
@@ -216,6 +219,7 @@ def update_dashboard_cmd(dashboard_id, file_data, fmt):
         console.print(f"[bold]Title:[/bold] {result.title}")
 
 
+@full_mode_only
 @dashboard.command(name="delete")
 @click.argument("dashboard_id")
 @click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")
@@ -259,6 +263,7 @@ def export_dashboard_cmd(dashboard_id, output_file):
     console.print(f"[green]Dashboard {dashboard_id} exported to {output_file}[/green]")
 
 
+@full_mode_only
 @dashboard.command(name="clone")
 @click.argument("dashboard_id")
 @click.option("--title", required=True, help="Title for the cloned dashboard")

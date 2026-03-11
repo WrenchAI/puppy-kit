@@ -11,6 +11,7 @@ from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
 from puppy_kit.utils.confirm import confirm_action
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 
 console = Console()
 
@@ -52,7 +53,7 @@ def parse_downtime_time(value: str) -> int:
         )
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def downtime():
     """Downtime management commands."""
     pass
@@ -144,6 +145,7 @@ def get_downtime(downtime_id, format):
             console.print(f"[bold]Monitor ID:[/bold] {dt.monitor_id}")
 
 
+@full_mode_only
 @downtime.command(name="create")
 @click.option("--scope", default=None, help="Downtime scope (e.g., 'env:prod')")
 @click.option("--start", "start_time", default=None, help="Start time (now, 2h, ISO datetime)")
@@ -207,6 +209,7 @@ def create_downtime_cmd(scope, start_time, end_time, message, monitor_id, file_d
             console.print(f"[bold]Message:[/bold] {result.message}")
 
 
+@full_mode_only
 @downtime.command(name="update")
 @click.argument("downtime_id", type=int)
 @click.option("--scope", default=None, help="New scope (e.g., 'env:staging')")
@@ -247,6 +250,7 @@ def update_downtime_cmd(downtime_id, scope, end_time, message, fmt):
         console.print(f"[green]Downtime {downtime_id} updated[/green]")
 
 
+@full_mode_only
 @downtime.command(name="delete")
 @click.argument("downtime_id", type=int)
 @click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")
@@ -265,6 +269,7 @@ def delete_downtime_cmd(downtime_id, confirmed):
     console.print(f"[green]Downtime {downtime_id} cancelled[/green]")
 
 
+@full_mode_only
 @downtime.command(name="cancel-by-scope")
 @click.argument("scope")
 @click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")

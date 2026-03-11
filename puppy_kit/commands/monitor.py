@@ -11,12 +11,13 @@ from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
 from puppy_kit.utils.confirm import confirm_action
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 from puppy_kit.utils.watch import watch_loop
 
 console = Console()
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def monitor():
     """Monitor management commands."""
     pass
@@ -172,6 +173,7 @@ def get_monitor(monitor_id, format):
         print(json.dumps(mon.to_dict(), indent=2, default=str))
 
 
+@full_mode_only
 @monitor.command(name="mute")
 @click.argument("monitor_id", type=int, required=False, default=None)
 @click.option("--scope", help="Scope to mute (e.g., host:myhost)")
@@ -240,6 +242,7 @@ def mute_monitor(monitor_id, scope, duration, from_stdin):
         console.print(f"[dim]Muted for {duration} seconds[/dim]")
 
 
+@full_mode_only
 @monitor.command(name="unmute")
 @click.argument("monitor_id", type=int)
 @click.option("--scope", help="Scope to unmute")
@@ -284,6 +287,7 @@ def validate_monitor(monitor_type, query):
         console.print("[green]✓ Monitor definition is valid[/green]")
 
 
+@full_mode_only
 @monitor.command(name="create")
 @click.option("--type", "monitor_type", default=None, help="Monitor type (e.g., metric alert)")
 @click.option("--query", default=None, help="Monitor query")
@@ -357,6 +361,7 @@ def create_monitor_cmd(
         console.print(f"[bold]Name:[/bold] {result.name}")
 
 
+@full_mode_only
 @monitor.command(name="update")
 @click.argument("monitor_id", type=int)
 @click.option("--name", default=None, help="Monitor name")
@@ -428,6 +433,7 @@ def update_monitor_cmd(
         console.print(f"[bold]Name:[/bold] {result.name}")
 
 
+@full_mode_only
 @monitor.command(name="delete")
 @click.argument("monitor_id", type=int)
 @click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")
@@ -446,6 +452,7 @@ def delete_monitor_cmd(monitor_id, confirmed):
     console.print(f"[green]✓ Monitor {monitor_id} deleted[/green]")
 
 
+@full_mode_only
 @monitor.command(name="mute-all")
 @click.option("--message", default=None, help="Downtime message")
 @handle_api_error
@@ -468,6 +475,7 @@ def mute_all_monitors(message):
     console.print(f"[dim]Downtime ID: {result.id}[/dim]")
 
 
+@full_mode_only
 @monitor.command(name="unmute-all")
 @handle_api_error
 def unmute_all_monitors():

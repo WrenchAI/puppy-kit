@@ -270,7 +270,11 @@ def test_event_post_simple(mock_client, runner):
     mock_client.events.create_event.return_value = mock_response
 
     with patch("puppy_kit.commands.event.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(event, ["post", "Investigation Started"])
+        result = runner.invoke(
+            event,
+            ["post", "Investigation Started"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
@@ -308,6 +312,7 @@ def test_event_post_with_all_options(mock_client, runner):
                 "--priority",
                 "low",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -339,7 +344,9 @@ def test_event_post_without_text(mock_client, runner):
     mock_client.events.create_event.return_value = mock_response
 
     with patch("puppy_kit.commands.event.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(event, ["post", "Short Event"])
+        result = runner.invoke(
+            event, ["post", "Short Event"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 

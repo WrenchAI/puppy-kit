@@ -116,7 +116,11 @@ def test_tag_add_single_tag(mock_client, runner):
     mock_client.tags.create_host_tags.return_value = mock_response
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["add", "web-prod-01", "env:prod"])
+        result = runner.invoke(
+            tag,
+            ["add", "web-prod-01", "env:prod"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     assert "Added" in result.output or "added" in result.output
@@ -138,7 +142,9 @@ def test_tag_add_multiple_tags(mock_client, runner):
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
-            tag, ["add", "web-prod-01", "env:prod", "service:web", "team:platform"]
+            tag,
+            ["add", "web-prod-01", "env:prod", "service:web", "team:platform"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
     assert result.exit_code == 0
@@ -157,7 +163,11 @@ def test_tag_add_with_source(mock_client, runner):
     mock_client.tags.create_host_tags.return_value = mock_response
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["add", "web-prod-01", "env:prod", "--source", "chef"])
+        result = runner.invoke(
+            tag,
+            ["add", "web-prod-01", "env:prod", "--source", "chef"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     call_kwargs = mock_client.tags.create_host_tags.call_args
@@ -174,7 +184,11 @@ def test_tag_add_without_source(mock_client, runner):
     mock_client.tags.create_host_tags.return_value = mock_response
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["add", "web-prod-01", "env:prod"])
+        result = runner.invoke(
+            tag,
+            ["add", "web-prod-01", "env:prod"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     call_kwargs = mock_client.tags.create_host_tags.call_args
@@ -191,7 +205,11 @@ def test_tag_replace_tags(mock_client, runner):
     mock_client.tags.update_host_tags.return_value = mock_response
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["replace", "web-prod-01", "env:staging"])
+        result = runner.invoke(
+            tag,
+            ["replace", "web-prod-01", "env:staging"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     assert "Replaced" in result.output or "replaced" in result.output
@@ -212,7 +230,11 @@ def test_tag_replace_multiple_tags(mock_client, runner):
     mock_client.tags.update_host_tags.return_value = mock_response
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["replace", "web-prod-01", "env:staging", "service:api"])
+        result = runner.invoke(
+            tag,
+            ["replace", "web-prod-01", "env:staging", "service:api"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     call_kwargs = mock_client.tags.update_host_tags.call_args
@@ -230,7 +252,11 @@ def test_tag_replace_with_source(mock_client, runner):
     mock_client.tags.update_host_tags.return_value = mock_response
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["replace", "web-prod-01", "env:staging", "--source", "puppet"])
+        result = runner.invoke(
+            tag,
+            ["replace", "web-prod-01", "env:staging", "--source", "puppet"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     call_kwargs = mock_client.tags.update_host_tags.call_args
@@ -244,7 +270,11 @@ def test_tag_detach(mock_client, runner):
     mock_client.tags.delete_host_tags.return_value = None
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["detach", "web-prod-01"])
+        result = runner.invoke(
+            tag,
+            ["detach", "web-prod-01"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     assert "Detached" in result.output or "detached" in result.output or "Removed" in result.output
@@ -258,7 +288,11 @@ def test_tag_detach_with_source(mock_client, runner):
     mock_client.tags.delete_host_tags.return_value = None
 
     with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["detach", "web-prod-01", "--source", "users"])
+        result = runner.invoke(
+            tag,
+            ["detach", "web-prod-01", "--source", "users"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     mock_client.tags.delete_host_tags.assert_called_once_with(
@@ -270,7 +304,9 @@ def test_tag_add_requires_tags_argument(runner):
     """Test that add command requires at least one tag."""
     from puppy_kit.commands.tag import tag
 
-    result = runner.invoke(tag, ["add", "web-prod-01"])
+    result = runner.invoke(
+        tag, ["add", "web-prod-01"], obj={"profile": None, "ops_profile": "full"}
+    )
     assert result.exit_code != 0
 
 
@@ -278,7 +314,9 @@ def test_tag_replace_requires_tags_argument(runner):
     """Test that replace command requires at least one tag."""
     from puppy_kit.commands.tag import tag
 
-    result = runner.invoke(tag, ["replace", "web-prod-01"])
+    result = runner.invoke(
+        tag, ["replace", "web-prod-01"], obj={"profile": None, "ops_profile": "full"}
+    )
     assert result.exit_code != 0
 
 

@@ -264,6 +264,7 @@ def test_slo_create_metric_type(mock_client, runner):
                 "--tags",
                 "team:platform",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -290,6 +291,7 @@ def test_slo_create_monitor_type(mock_client, runner):
                 "--thresholds",
                 "30d:99.9",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -316,7 +318,11 @@ def test_slo_create_from_file(mock_client, runner, tmp_path):
     mock_client.slos.create_slo.return_value = Mock(data=[created_slo])
 
     with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(slo, ["create", "-f", str(json_file)])
+        result = runner.invoke(
+            slo,
+            ["create", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "SLO" in result.output and "created" in result.output
@@ -338,6 +344,7 @@ def test_slo_create_missing_required_metric_fields(mock_client, runner):
                 "30d:99.9",
                 # Missing --numerator and --denominator
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code != 0
@@ -358,6 +365,7 @@ def test_slo_create_missing_required_monitor_fields(mock_client, runner):
                 "30d:99.9",
                 # Missing --monitor-ids
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code != 0
@@ -379,6 +387,7 @@ def test_slo_create_missing_name(mock_client, runner):
                 "--denominator",
                 "sum:total{*}",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code != 0
@@ -400,6 +409,7 @@ def test_slo_create_missing_thresholds(mock_client, runner):
                 "--denominator",
                 "sum:total{*}",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code != 0
@@ -428,6 +438,7 @@ def test_slo_create_json_output(mock_client, runner):
                 "--format",
                 "json",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -456,6 +467,7 @@ def test_slo_update_with_inline_flags(mock_client, runner):
                 "--thresholds",
                 "30d:99.95",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -476,7 +488,11 @@ def test_slo_update_from_file(mock_client, runner, tmp_path):
     mock_client.slos.update_slo.return_value = Mock(data=[updated_slo])
 
     with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(slo, ["update", "abc123", "-f", str(json_file)])
+        result = runner.invoke(
+            slo,
+            ["update", "abc123", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "updated" in result.output
@@ -486,7 +502,9 @@ def test_slo_update_from_file(mock_client, runner, tmp_path):
 def test_slo_update_no_fields(mock_client, runner):
     """Test that update fails when no fields are specified."""
     with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(slo, ["update", "abc123"])
+        result = runner.invoke(
+            slo, ["update", "abc123"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code != 0
 
@@ -500,6 +518,7 @@ def test_slo_update_json_output(mock_client, runner):
         result = runner.invoke(
             slo,
             ["update", "abc123", "--name", "JSON Update", "--format", "json"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -517,7 +536,11 @@ def test_slo_delete_with_confirm_flag(mock_client, runner):
     mock_client.slos.delete_slo.return_value = Mock()
 
     with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(slo, ["delete", "abc123", "--confirm"])
+        result = runner.invoke(
+            slo,
+            ["delete", "abc123", "--confirm"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "deleted" in result.output
@@ -529,7 +552,12 @@ def test_slo_delete_interactive_confirm_yes(mock_client, runner):
     mock_client.slos.delete_slo.return_value = Mock()
 
     with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(slo, ["delete", "abc123"], input="y\n")
+        result = runner.invoke(
+            slo,
+            ["delete", "abc123"],
+            input="y\n",
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "deleted" in result.output
@@ -539,7 +567,12 @@ def test_slo_delete_interactive_confirm_yes(mock_client, runner):
 def test_slo_delete_interactive_confirm_no(mock_client, runner):
     """Test deleting an SLO with interactive confirmation (user says no)."""
     with patch("puppy_kit.commands.slo.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(slo, ["delete", "abc123"], input="n\n")
+        result = runner.invoke(
+            slo,
+            ["delete", "abc123"],
+            input="n\n",
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Aborted" in result.output

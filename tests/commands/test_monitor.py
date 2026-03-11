@@ -258,7 +258,9 @@ def test_monitor_mute_basic(mock_client, runner):
     mock_client.monitors.update_monitor.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["mute", "123"])
+        result = runner.invoke(
+            monitor, ["mute", "123"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code == 0
         assert "Monitor 123 muted" in result.output
@@ -270,7 +272,11 @@ def test_monitor_mute_with_duration(mock_client, runner):
     mock_client.monitors.update_monitor.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["mute", "123", "--duration", "3600"])
+        result = runner.invoke(
+            monitor,
+            ["mute", "123", "--duration", "3600"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0
         assert "Monitor 123 muted" in result.output
@@ -283,7 +289,11 @@ def test_monitor_mute_with_scope(mock_client, runner):
     mock_client.monitors.update_monitor.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["mute", "456", "--scope", "host:myhost"])
+        result = runner.invoke(
+            monitor,
+            ["mute", "456", "--scope", "host:myhost"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0
         assert "Monitor 456 muted" in result.output
@@ -296,7 +306,9 @@ def test_monitor_mute_with_duration_and_scope(mock_client, runner):
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
-            monitor, ["mute", "789", "--duration", "1800", "--scope", "env:prod"]
+            monitor,
+            ["mute", "789", "--duration", "1800", "--scope", "env:prod"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0
@@ -315,7 +327,9 @@ def test_monitor_unmute_basic(mock_client, runner):
     mock_client.monitors.update_monitor.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["unmute", "123"])
+        result = runner.invoke(
+            monitor, ["unmute", "123"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code == 0
         assert "Monitor 123 unmuted" in result.output
@@ -327,7 +341,11 @@ def test_monitor_unmute_with_scope(mock_client, runner):
     mock_client.monitors.update_monitor.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["unmute", "456", "--scope", "host:myhost"])
+        result = runner.invoke(
+            monitor,
+            ["unmute", "456", "--scope", "host:myhost"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0
         assert "Monitor 456 unmuted" in result.output
@@ -456,6 +474,7 @@ def test_monitor_create_with_inline_flags(mock_client, runner):
                 "--priority",
                 "3",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -490,6 +509,7 @@ def test_monitor_create_with_minimal_flags(mock_client, runner):
                 "--name",
                 "Test",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -504,6 +524,7 @@ def test_monitor_create_missing_required_flags(mock_client, runner):
         result = runner.invoke(
             monitor,
             ["create", "--query", "avg:system.cpu.user{*} > 80", "--name", "Test"],
+            obj={"profile": None, "ops_profile": "full"},
         )
         assert result.exit_code != 0
 
@@ -511,6 +532,7 @@ def test_monitor_create_missing_required_flags(mock_client, runner):
         result = runner.invoke(
             monitor,
             ["create", "--type", "metric alert", "--name", "Test"],
+            obj={"profile": None, "ops_profile": "full"},
         )
         assert result.exit_code != 0
 
@@ -518,6 +540,7 @@ def test_monitor_create_missing_required_flags(mock_client, runner):
         result = runner.invoke(
             monitor,
             ["create", "--type", "metric alert", "--query", "avg:system.cpu.user{*} > 80"],
+            obj={"profile": None, "ops_profile": "full"},
         )
         assert result.exit_code != 0
 
@@ -539,7 +562,11 @@ def test_monitor_create_from_file(mock_client, runner, tmp_path):
     mock_client.monitors.create_monitor.return_value = created_monitor
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["create", "-f", str(json_file)])
+        result = runner.invoke(
+            monitor,
+            ["create", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Monitor 102 created" in result.output
@@ -573,6 +600,7 @@ def test_monitor_create_from_file_overrides_flags(mock_client, runner, tmp_path)
                 "--name",
                 "ignored",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -588,7 +616,11 @@ def test_monitor_create_from_invalid_file(mock_client, runner, tmp_path):
     json_file.write_text("not valid json {{{")
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["create", "-f", str(json_file)])
+        result = runner.invoke(
+            monitor,
+            ["create", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code != 0
 
@@ -596,7 +628,11 @@ def test_monitor_create_from_invalid_file(mock_client, runner, tmp_path):
 def test_monitor_create_from_nonexistent_file(mock_client, runner):
     """Test creating a monitor from a file that doesn't exist."""
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["create", "-f", "/nonexistent/path.json"])
+        result = runner.invoke(
+            monitor,
+            ["create", "-f", "/nonexistent/path.json"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code != 0
 
@@ -620,6 +656,7 @@ def test_monitor_create_json_output(mock_client, runner):
                 "--format",
                 "json",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -655,6 +692,7 @@ def test_monitor_update_with_inline_flags(mock_client, runner):
                 "--priority",
                 "1",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -675,6 +713,7 @@ def test_monitor_update_partial_flags(mock_client, runner):
         result = runner.invoke(
             monitor,
             ["update", "201", "--name", "Partially Updated"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -695,7 +734,11 @@ def test_monitor_update_from_file(mock_client, runner, tmp_path):
     mock_client.monitors.update_monitor.return_value = updated_monitor
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["update", "202", "-f", str(json_file)])
+        result = runner.invoke(
+            monitor,
+            ["update", "202", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Monitor 202 updated" in result.output
@@ -711,6 +754,7 @@ def test_monitor_update_json_output(mock_client, runner):
         result = runner.invoke(
             monitor,
             ["update", "203", "--name", "JSON Update", "--format", "json"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -728,7 +772,11 @@ def test_monitor_delete_with_confirm_flag(mock_client, runner):
     mock_client.monitors.delete_monitor.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "300", "--confirm"])
+        result = runner.invoke(
+            monitor,
+            ["delete", "300", "--confirm"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Monitor 300 deleted" in result.output
@@ -740,7 +788,12 @@ def test_monitor_delete_interactive_confirm_yes(mock_client, runner):
     mock_client.monitors.delete_monitor.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "301"], input="y\n")
+        result = runner.invoke(
+            monitor,
+            ["delete", "301"],
+            input="y\n",
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Monitor 301 deleted" in result.output
@@ -750,7 +803,12 @@ def test_monitor_delete_interactive_confirm_yes(mock_client, runner):
 def test_monitor_delete_interactive_confirm_no(mock_client, runner):
     """Test deleting a monitor with interactive confirmation (user says no)."""
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "302"], input="n\n")
+        result = runner.invoke(
+            monitor,
+            ["delete", "302"],
+            input="n\n",
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Aborted" in result.output
@@ -770,7 +828,9 @@ def test_monitor_mute_all(mock_client, runner):
     mock_client.downtimes.create_downtime.return_value = mock_downtime
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["mute-all"])
+        result = runner.invoke(
+            monitor, ["mute-all"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "All monitors muted" in result.output
@@ -790,7 +850,11 @@ def test_monitor_mute_all_with_message(mock_client, runner):
     mock_client.downtimes.create_downtime.return_value = mock_downtime
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["mute-all", "--message", "Maintenance window"])
+        result = runner.invoke(
+            monitor,
+            ["mute-all", "--message", "Maintenance window"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "All monitors muted" in result.output
@@ -825,7 +889,9 @@ def test_monitor_unmute_all(mock_client, runner):
     mock_client.downtimes.cancel_downtime.return_value = Mock()
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["unmute-all"])
+        result = runner.invoke(
+            monitor, ["unmute-all"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "All monitors unmuted" in result.output
@@ -839,7 +905,9 @@ def test_monitor_unmute_all_no_global_downtimes(mock_client, runner):
     mock_client.downtimes.list_downtimes.return_value = []
 
     with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["unmute-all"])
+        result = runner.invoke(
+            monitor, ["unmute-all"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "No global downtimes found" in result.output

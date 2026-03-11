@@ -18,7 +18,9 @@ class TestServiceCheckPost:
             "puppy_kit.commands.service_check.get_datadog_client",
             return_value=self.mock_client,
         ):
-            return self.runner.invoke(service_check, args)
+            return self.runner.invoke(
+                service_check, args, obj={"profile": None, "ops_profile": "full"}
+            )
 
     # --- Named status tests ---
 

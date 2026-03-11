@@ -12,6 +12,7 @@ from rich.syntax import Syntax
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_file
+from puppy_kit.utils.mode import full_mode_only
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
 
 console = Console()
@@ -130,6 +131,7 @@ def _fetch_live_state(data: dict, resource_type: str) -> dict:
         raise ValueError(f"Unknown resource type: {resource_type}")
 
 
+@full_mode_only
 @click.command(name="apply")
 @click.option(
     "-f",

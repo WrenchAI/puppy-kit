@@ -9,6 +9,7 @@ from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
 from puppy_kit.utils.confirm import confirm_action
 from puppy_kit.utils.export import export_to_json
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
 from puppy_kit.utils.time import parse_time_range
 
@@ -46,7 +47,7 @@ def parse_thresholds(threshold_str: str) -> list[dict]:
     return thresholds
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def slo():
     """SLO (Service Level Objective) management commands."""
     pass
@@ -146,6 +147,7 @@ def get_slo(slo_id, fmt):
             console.print(f"[bold]Creator:[/bold] {email}")
 
 
+@full_mode_only
 @slo.command(name="create")
 @click.option(
     "--type",
@@ -266,6 +268,7 @@ def create_slo(
             console.print("[green]SLO created[/green]")
 
 
+@full_mode_only
 @slo.command(name="update")
 @click.argument("slo_id")
 @click.option("--name", default=None, help="SLO name")
@@ -326,6 +329,7 @@ def update_slo(slo_id, name, thresholds, tags, description, file_data, fmt):
             console.print(f"[green]SLO {slo_id} updated[/green]")
 
 
+@full_mode_only
 @slo.command(name="delete")
 @click.argument("slo_id")
 @click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")

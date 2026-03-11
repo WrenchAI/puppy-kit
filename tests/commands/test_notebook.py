@@ -188,7 +188,11 @@ class TestCreateNotebook:
         mock_client.notebooks.create_notebook.return_value = response
 
         with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(notebook, ["create", "--name", "New Notebook"])
+            result = runner.invoke(
+                notebook,
+                ["create", "--name", "New Notebook"],
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Notebook 99 created" in result.output
@@ -210,7 +214,9 @@ class TestCreateNotebook:
 
         with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
             result = runner.invoke(
-                notebook, ["create", "--name", "New Notebook", "--format", "json"]
+                notebook,
+                ["create", "--name", "New Notebook", "--format", "json"],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -221,7 +227,9 @@ class TestCreateNotebook:
     def test_create_notebook_requires_name(self, mock_client, runner):
         """Test that --name is required."""
         with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(notebook, ["create"])
+            result = runner.invoke(
+                notebook, ["create"], obj={"profile": None, "ops_profile": "full"}
+            )
 
         assert result.exit_code != 0
         assert "Missing option" in result.output or "required" in result.output.lower()
@@ -245,7 +253,11 @@ class TestDeleteNotebook:
         mock_client.notebooks.delete_notebook.return_value = None
 
         with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(notebook, ["delete", "42", "--confirm"])
+            result = runner.invoke(
+                notebook,
+                ["delete", "42", "--confirm"],
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Notebook 42 deleted" in result.output
@@ -256,7 +268,12 @@ class TestDeleteNotebook:
         mock_client.notebooks.delete_notebook.return_value = None
 
         with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(notebook, ["delete", "42"], input="y\n")
+            result = runner.invoke(
+                notebook,
+                ["delete", "42"],
+                input="y\n",
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Notebook 42 deleted" in result.output
@@ -265,7 +282,12 @@ class TestDeleteNotebook:
     def test_delete_notebook_without_confirm(self, mock_client, runner):
         """Test deleting a notebook with interactive confirmation (user says no)."""
         with patch("puppy_kit.commands.notebook.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(notebook, ["delete", "42"], input="n\n")
+            result = runner.invoke(
+                notebook,
+                ["delete", "42"],
+                input="n\n",
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Aborted" in result.output

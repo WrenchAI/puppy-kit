@@ -4,6 +4,7 @@ import click
 from rich.console import Console
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 from puppy_kit.utils.tags import parse_tags
 
 console = Console()
@@ -22,12 +23,13 @@ STATUS_MAP = {
 STATUS_NAMES = {0: "OK", 1: "Warning", 2: "Critical", 3: "Unknown"}
 
 
-@click.group(name="service-check")
+@click.group(name="service-check", cls=ModeAwareGroup)
 def service_check():
     """Service check commands."""
     pass
 
 
+@full_mode_only
 @service_check.command(name="post")
 @click.argument("check_name")
 @click.argument("host")

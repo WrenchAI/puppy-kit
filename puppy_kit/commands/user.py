@@ -7,11 +7,12 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.confirm import confirm_action
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 
 console = Console()
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def user():
     """User management commands."""
     pass
@@ -104,6 +105,7 @@ def get_user(user_id, format):
         console.print(f"[bold]Created At:[/bold] {getattr(attrs, 'created_at', 'N/A')}")
 
 
+@full_mode_only
 @user.command(name="invite")
 @click.option("--email", required=True, help="Email address to invite")
 @click.option("--role", default=None, help="Role to assign to the invited user")
@@ -166,6 +168,7 @@ def invite_user(email, role, format):
         console.print(f"[dim]User ID: {new_user.id}[/dim]")
 
 
+@full_mode_only
 @user.command(name="disable")
 @click.argument("user_id")
 @click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")

@@ -27,8 +27,20 @@ class TestListIncidents:
     def test_list_incidents_table(self, mock_client, runner):
         """Test listing incidents in table format."""
         incidents = [
-            _make_incident("inc-1", "Service outage", "SEV-1", "active"),
-            _make_incident("inc-2", "Degraded performance", "SEV-3", "stable"),
+            _make_incident(
+                "inc-1",
+                "Service outage",
+                "SEV-1",
+                "active",
+                created="2026-01-15T10:00:00Z",
+            ),
+            _make_incident(
+                "inc-2",
+                "Degraded performance",
+                "SEV-3",
+                "stable",
+                created="2026-01-16T10:00:00Z",
+            ),
         ]
         response = Mock(data=incidents)
         mock_client.incidents.list_incidents.return_value = response
@@ -42,12 +54,25 @@ class TestListIncidents:
         assert "SEV-1" in result.output
         assert "SEV-3" in result.output
         assert "Total incidents: 2" in result.output
+        mock_client.incidents.list_incidents.assert_called_once_with()
 
     def test_list_incidents_json(self, mock_client, runner):
         """Test listing incidents in JSON format."""
         incidents = [
-            _make_incident("inc-1", "Service outage", "SEV-1", "active"),
-            _make_incident("inc-2", "Degraded performance", "SEV-3", "stable"),
+            _make_incident(
+                "inc-1",
+                "Service outage",
+                "SEV-1",
+                "active",
+                created="2026-01-15T10:00:00Z",
+            ),
+            _make_incident(
+                "inc-2",
+                "Degraded performance",
+                "SEV-3",
+                "stable",
+                created="2026-01-16T10:00:00Z",
+            ),
         ]
         response = Mock(data=incidents)
         mock_client.incidents.list_incidents.return_value = response
@@ -58,11 +83,41 @@ class TestListIncidents:
         assert result.exit_code == 0, f"Command failed: {result.output}"
         output = json.loads(result.output)
         assert len(output) == 2
-        assert output[0]["id"] == "inc-1"
-        assert output[0]["title"] == "Service outage"
-        assert output[0]["severity"] == "SEV-1"
-        assert output[0]["status"] == "active"
-        assert output[1]["id"] == "inc-2"
+        assert output[0]["id"] == "inc-2"
+        assert output[0]["title"] == "Degraded performance"
+        assert output[0]["severity"] == "SEV-3"
+        assert output[0]["status"] == "stable"
+        assert output[1]["id"] == "inc-1"
+        mock_client.incidents.list_incidents.assert_called_once_with()
+
+    def test_list_incidents_sort_created(self, mock_client, runner):
+        """Test listing incidents with ascending created sort."""
+        incidents = [
+            _make_incident(
+                "inc-2",
+                "Degraded performance",
+                "SEV-3",
+                "stable",
+                created="2026-01-16T10:00:00Z",
+            ),
+            _make_incident(
+                "inc-1",
+                "Service outage",
+                "SEV-1",
+                "active",
+                created="2026-01-15T10:00:00Z",
+            ),
+        ]
+        response = Mock(data=incidents)
+        mock_client.incidents.list_incidents.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["list", "--format", "json", "--sort", "created"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        output = json.loads(result.output)
+        assert [item["id"] for item in output] == ["inc-1", "inc-2"]
+        mock_client.incidents.list_incidents.assert_called_once_with()
 
     def test_list_incidents_empty(self, mock_client, runner):
         """Test listing incidents when none exist."""

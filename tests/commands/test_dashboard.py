@@ -238,7 +238,11 @@ def test_dashboard_create_from_file(mock_client, runner, tmp_path):
     mock_client.dashboards.create_dashboard.return_value = created
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["create", "-f", str(json_file)])
+        result = runner.invoke(
+            dashboard,
+            ["create", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "new-123" in result.output
@@ -263,6 +267,7 @@ def test_dashboard_create_with_inline_flags(mock_client, runner):
                 "--description",
                 "A test dashboard",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -274,7 +279,9 @@ def test_dashboard_create_with_inline_flags(mock_client, runner):
 def test_dashboard_create_missing_required(mock_client, runner):
     """Test that create fails when no file and no title provided."""
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["create"])
+        result = runner.invoke(
+            dashboard, ["create"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code != 0
 
@@ -296,6 +303,7 @@ def test_dashboard_create_from_file_overrides_flags(mock_client, runner, tmp_pat
         result = runner.invoke(
             dashboard,
             ["create", "-f", str(json_file), "--title", "Ignored Title"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -311,7 +319,11 @@ def test_dashboard_create_from_invalid_file(mock_client, runner, tmp_path):
     json_file.write_text("not valid json {{{")
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["create", "-f", str(json_file)])
+        result = runner.invoke(
+            dashboard,
+            ["create", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code != 0
 
@@ -333,6 +345,7 @@ def test_dashboard_create_json_output(mock_client, runner):
                 "--format",
                 "json",
             ],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -360,7 +373,11 @@ def test_dashboard_update_from_file(mock_client, runner, tmp_path):
     mock_client.dashboards.update_dashboard.return_value = updated
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["update", "abc-123", "-f", str(json_file)])
+        result = runner.invoke(
+            dashboard,
+            ["update", "abc-123", "-f", str(json_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "abc-123" in result.output
@@ -373,7 +390,9 @@ def test_dashboard_update_from_file(mock_client, runner, tmp_path):
 def test_dashboard_update_missing_file(mock_client, runner):
     """Test that update fails when no file is provided."""
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["update", "abc-123"])
+        result = runner.invoke(
+            dashboard, ["update", "abc-123"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code != 0
 
@@ -389,7 +408,9 @@ def test_dashboard_update_json_output(mock_client, runner, tmp_path):
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
-            dashboard, ["update", "abc-123", "-f", str(json_file), "--format", "json"]
+            dashboard,
+            ["update", "abc-123", "-f", str(json_file), "--format", "json"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -407,7 +428,11 @@ def test_dashboard_delete_with_confirm_flag(mock_client, runner):
     mock_client.dashboards.delete_dashboard.return_value = Mock()
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["delete", "abc-123", "--confirm"])
+        result = runner.invoke(
+            dashboard,
+            ["delete", "abc-123", "--confirm"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "abc-123" in result.output
@@ -420,7 +445,12 @@ def test_dashboard_delete_interactive_confirm_yes(mock_client, runner):
     mock_client.dashboards.delete_dashboard.return_value = Mock()
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["delete", "abc-123"], input="y\n")
+        result = runner.invoke(
+            dashboard,
+            ["delete", "abc-123"],
+            input="y\n",
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "deleted" in result.output.lower()
@@ -430,7 +460,12 @@ def test_dashboard_delete_interactive_confirm_yes(mock_client, runner):
 def test_dashboard_delete_interactive_confirm_no(mock_client, runner):
     """Test deleting a dashboard with interactive confirmation (user says no)."""
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["delete", "abc-123"], input="n\n")
+        result = runner.invoke(
+            dashboard,
+            ["delete", "abc-123"],
+            input="n\n",
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
         assert result.exit_code == 0
         assert "Aborted" in result.output
@@ -499,7 +534,9 @@ def test_dashboard_clone(mock_client, runner):
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
-            dashboard, ["clone", "abc-123", "--title", "Copy of Production Overview"]
+            dashboard,
+            ["clone", "abc-123", "--title", "Copy of Production Overview"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -519,7 +556,9 @@ def test_dashboard_clone(mock_client, runner):
 def test_dashboard_clone_missing_title(mock_client, runner):
     """Test that clone fails when --title is not provided."""
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["clone", "abc-123"])
+        result = runner.invoke(
+            dashboard, ["clone", "abc-123"], obj={"profile": None, "ops_profile": "full"}
+        )
 
         assert result.exit_code != 0
 
@@ -541,6 +580,7 @@ def test_dashboard_clone_json_output(mock_client, runner):
         result = runner.invoke(
             dashboard,
             ["clone", "abc-123", "--title", "Cloned Dashboard", "--format", "json"],
+            obj={"profile": None, "ops_profile": "full"},
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -608,6 +648,10 @@ def test_dashboard_export_modify_update_workflow(mock_client, runner, tmp_path):
     mock_client.dashboards.update_dashboard.return_value = updated
 
     with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["update", "abc-123", "-f", str(export_file)])
+        result = runner.invoke(
+            dashboard,
+            ["update", "abc-123", "-f", str(export_file)],
+            obj={"profile": None, "ops_profile": "full"},
+        )
         assert result.exit_code == 0
         assert "updated" in result.output.lower()

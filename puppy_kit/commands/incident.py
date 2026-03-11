@@ -14,6 +14,24 @@ SEVERITY_CHOICES = ["SEV-1", "SEV-2", "SEV-3", "SEV-4", "SEV-5"]
 STATUS_CHOICES = ["active", "stable", "resolved"]
 
 
+def _incident_created_sort_value(incident):
+    """Return a sortable created value from incident-like objects."""
+    candidates = (
+        getattr(incident, "created", None),
+        getattr(getattr(incident, "attributes", None), "created", None),
+    )
+    for value in candidates:
+        if value is None:
+            continue
+        if "unittest.mock" in type(value).__module__:
+            continue
+        if isinstance(value, (str, int, float)):
+            return value
+        if hasattr(value, "isoformat"):
+            return str(value)
+    return ""
+
+
 @click.group()
 def incident():
     """Incident management commands."""
@@ -24,8 +42,16 @@ def incident():
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
+@click.option(
+    "--sort",
+    "sort",
+    default="-created",
+    show_default=True,
+    type=click.Choice(["created", "-created"]),
+    help="Sort order for results.",
+)
 @handle_api_error
-def list_incidents(format):
+def list_incidents(format, sort):
     """List all incidents."""
     client = get_datadog_client()
 
@@ -33,6 +59,8 @@ def list_incidents(format):
         response = client.incidents.list_incidents()
 
     incidents = response.data if response.data else []
+    reverse = sort.startswith("-")
+    incidents.sort(key=_incident_created_sort_value, reverse=reverse)
 
     if format == "json":
         output = []

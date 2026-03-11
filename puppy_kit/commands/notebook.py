@@ -7,11 +7,12 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.confirm import confirm_action
+from puppy_kit.utils.mode import ModeAwareGroup, full_mode_only
 
 console = Console()
 
 
-@click.group()
+@click.group(cls=ModeAwareGroup)
 def notebook():
     """Notebook management commands."""
     pass
@@ -133,6 +134,7 @@ def get_notebook(notebook_id, format):
         console.print(f"[bold]Cells:[/bold] {len(cells)}")
 
 
+@full_mode_only
 @notebook.command(name="create")
 @click.option("--name", required=True, help="Notebook name")
 @click.option(
@@ -205,6 +207,7 @@ def create_notebook(name, format):
         console.print(f"[bold]Name:[/bold] {getattr(nb.attributes, 'name', '')}")
 
 
+@full_mode_only
 @notebook.command(name="delete")
 @click.argument("notebook_id", type=int)
 @click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")

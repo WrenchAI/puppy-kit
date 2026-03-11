@@ -278,6 +278,7 @@ class TestDowntimeCreate:
                     "--message",
                     "Deploying v2.5",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -308,6 +309,7 @@ class TestDowntimeCreate:
                     "--monitor-id",
                     "789",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -330,6 +332,7 @@ class TestDowntimeCreate:
                     "--end",
                     "2h",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code != 0
@@ -352,7 +355,11 @@ class TestDowntimeCreate:
         mock_client.downtimes.create_downtime.return_value = created_dt
 
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["create", "-f", str(json_file)])
+            result = runner.invoke(
+                downtime,
+                ["create", "-f", str(json_file)],
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Downtime 102 created" in result.output
@@ -387,6 +394,7 @@ class TestDowntimeCreate:
                     "--message",
                     "Ignored",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -425,6 +433,7 @@ class TestDowntimeCreate:
                     "--format",
                     "json",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -451,6 +460,7 @@ class TestDowntimeCreate:
                     "--end",
                     "1h",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -496,6 +506,7 @@ class TestDowntimeUpdate:
                     "--message",
                     "Extended maintenance",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -523,6 +534,7 @@ class TestDowntimeUpdate:
                     "--message",
                     "New message",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -531,7 +543,9 @@ class TestDowntimeUpdate:
     def test_update_no_fields_errors(self, mock_client, runner):
         """Test that update without any fields gives an error."""
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["update", "202"])
+            result = runner.invoke(
+                downtime, ["update", "202"], obj={"profile": None, "ops_profile": "full"}
+            )
 
         assert result.exit_code != 0
 
@@ -559,6 +573,7 @@ class TestDowntimeUpdate:
                     "--format",
                     "json",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -582,6 +597,7 @@ class TestDowntimeUpdate:
                     "--scope",
                     "env:staging",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -611,7 +627,11 @@ class TestDowntimeDelete:
         mock_client.downtimes.cancel_downtime.return_value = None
 
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["delete", "300", "--confirm"])
+            result = runner.invoke(
+                downtime,
+                ["delete", "300", "--confirm"],
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Downtime 300 cancelled" in result.output
@@ -622,7 +642,12 @@ class TestDowntimeDelete:
         mock_client.downtimes.cancel_downtime.return_value = None
 
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["delete", "301"], input="y\n")
+            result = runner.invoke(
+                downtime,
+                ["delete", "301"],
+                input="y\n",
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Downtime 301 cancelled" in result.output
@@ -631,7 +656,12 @@ class TestDowntimeDelete:
     def test_delete_interactive_confirm_no(self, mock_client, runner):
         """Test deleting a downtime with interactive confirmation (user says no)."""
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["delete", "302"], input="n\n")
+            result = runner.invoke(
+                downtime,
+                ["delete", "302"],
+                input="n\n",
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Aborted" in result.output
@@ -663,7 +693,11 @@ class TestDowntimeCancelByScope:
         mock_client.downtimes.cancel_downtimes_by_scope.return_value = cancel_result
 
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["cancel-by-scope", "env:prod", "--confirm"])
+            result = runner.invoke(
+                downtime,
+                ["cancel-by-scope", "env:prod", "--confirm"],
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "cancelled" in result.output.lower()
@@ -676,7 +710,12 @@ class TestDowntimeCancelByScope:
         mock_client.downtimes.cancel_downtimes_by_scope.return_value = cancel_result
 
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["cancel-by-scope", "env:staging"], input="y\n")
+            result = runner.invoke(
+                downtime,
+                ["cancel-by-scope", "env:staging"],
+                input="y\n",
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "cancelled" in result.output.lower()
@@ -684,7 +723,12 @@ class TestDowntimeCancelByScope:
     def test_cancel_by_scope_interactive_confirm_no(self, mock_client, runner):
         """Test cancel-by-scope with interactive confirmation (user says no)."""
         with patch("puppy_kit.commands.downtime.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(downtime, ["cancel-by-scope", "env:prod"], input="n\n")
+            result = runner.invoke(
+                downtime,
+                ["cancel-by-scope", "env:prod"],
+                input="n\n",
+                obj={"profile": None, "ops_profile": "full"},
+            )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Aborted" in result.output
@@ -706,6 +750,7 @@ class TestDowntimeCancelByScope:
                     "--format",
                     "json",
                 ],
+                obj={"profile": None, "ops_profile": "full"},
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"

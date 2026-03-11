@@ -250,7 +250,11 @@ def test_trigger_test_table(mock_client, runner):
     mock_client.synthetics.trigger_tests.return_value = mock_response
 
     with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(synthetics, ["trigger", "abc-123"])
+        result = runner.invoke(
+            synthetics,
+            ["trigger", "abc-123"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     assert "triggered successfully" in result.output
@@ -269,7 +273,11 @@ def test_trigger_test_json(mock_client, runner):
     mock_client.synthetics.trigger_tests.return_value = mock_response
 
     with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(synthetics, ["trigger", "abc-123", "--format", "json"])
+        result = runner.invoke(
+            synthetics,
+            ["trigger", "abc-123", "--format", "json"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     output = json.loads(result.output)
@@ -288,7 +296,11 @@ def test_trigger_test_calls_api_correctly(mock_client, runner):
     mock_client.synthetics.trigger_tests.return_value = mock_response
 
     with patch("puppy_kit.commands.synthetics.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(synthetics, ["trigger", "xyz-789"])
+        result = runner.invoke(
+            synthetics,
+            ["trigger", "xyz-789"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     mock_client.synthetics.trigger_tests.assert_called_once()

@@ -131,7 +131,11 @@ def test_invite_user(mock_client, runner):
     mock_client.users.send_invitations.return_value = Mock(data=[Mock()])
 
     with patch("puppy_kit.commands.user.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(user, ["invite", "--email", "newuser@example.com"])
+        result = runner.invoke(
+            user,
+            ["invite", "--email", "newuser@example.com"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     assert "Invitation sent to newuser@example.com" in result.output
@@ -150,7 +154,11 @@ def test_invite_user_json(mock_client, runner):
     mock_client.users.send_invitations.return_value = Mock(data=[Mock()])
 
     with patch("puppy_kit.commands.user.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(user, ["invite", "--email", "test@example.com", "--format", "json"])
+        result = runner.invoke(
+            user,
+            ["invite", "--email", "test@example.com", "--format", "json"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     output = json.loads(result.output)
@@ -166,7 +174,11 @@ def test_disable_user_with_confirm(mock_client, runner):
     mock_client.users.disable_user.return_value = None
 
     with patch("puppy_kit.commands.user.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(user, ["disable", "user-1", "--confirm"])
+        result = runner.invoke(
+            user,
+            ["disable", "user-1", "--confirm"],
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     assert "User user-1 disabled" in result.output
@@ -178,7 +190,12 @@ def test_disable_user_without_confirm(mock_client, runner):
     from puppy_kit.commands.user import user
 
     with patch("puppy_kit.commands.user.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(user, ["disable", "user-1"], input="n\n")
+        result = runner.invoke(
+            user,
+            ["disable", "user-1"],
+            input="n\n",
+            obj={"profile": None, "ops_profile": "full"},
+        )
 
     assert result.exit_code == 0
     assert "Aborted" in result.output
