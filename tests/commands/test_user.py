@@ -68,10 +68,13 @@ def test_list_users_table(mock_client, runner):
     assert "bob@example.com" in result.output
     assert "Manager" in result.output
     assert "Total users: 2" in result.output
-    assert result.output.index("ID") < result.output.index("Status") < result.output.index(
-        "Email"
-    ) < result.output.index("Name") < result.output.index("Title") < result.output.index(
-        "Created"
+    assert (
+        result.output.index("ID")
+        < result.output.index("Status")
+        < result.output.index("Email")
+        < result.output.index("Name")
+        < result.output.index("Title")
+        < result.output.index("Created")
     )
     assert mock_client.users.list_users.call_count == 2
     mock_client.users.list_users.assert_any_call(

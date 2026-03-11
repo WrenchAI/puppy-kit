@@ -184,7 +184,10 @@ class TestLoadConfig:
         assert any("DD_API_KEY" in str(call) for call in calls)
         assert any("DD_APP_KEY" in str(call) for call in calls)
 
-    @patch.dict("os.environ", {"DD_API_KEY": "env_api_key", "DD_APP_KEY": "env_app_key", "PUPPY_KIT_PROFILE": ""})
+    @patch.dict(
+        "os.environ",
+        {"DD_API_KEY": "env_api_key", "DD_APP_KEY": "env_app_key", "PUPPY_KIT_PROFILE": ""},
+    )
     def test_load_config_with_defaults(self):
         """Test that load_config applies default values correctly."""
         config = load_config()

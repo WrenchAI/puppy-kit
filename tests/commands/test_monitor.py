@@ -723,40 +723,6 @@ def test_monitor_update_json_output(mock_client, runner):
 # ============================================================================
 
 
-def test_monitor_delete_with_confirm_flag(mock_client, runner):
-    """Test deleting a monitor with --confirm flag (no prompt)."""
-    mock_client.monitors.delete_monitor.return_value = Mock()
-
-    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "300", "--confirm"])
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Monitor 300 deleted" in result.output
-        mock_client.monitors.delete_monitor.assert_called_once_with(300)
-
-
-def test_monitor_delete_interactive_confirm_yes(mock_client, runner):
-    """Test deleting a monitor with interactive confirmation (user says yes)."""
-    mock_client.monitors.delete_monitor.return_value = Mock()
-
-    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "301"], input="y\n")
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Monitor 301 deleted" in result.output
-        mock_client.monitors.delete_monitor.assert_called_once_with(301)
-
-
-def test_monitor_delete_interactive_confirm_no(mock_client, runner):
-    """Test deleting a monitor with interactive confirmation (user says no)."""
-    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "302"], input="n\n")
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Aborted" in result.output
-        mock_client.monitors.delete_monitor.assert_not_called()
-
-
 # ============================================================================
 # Monitor Mute-All Command Tests
 # ============================================================================

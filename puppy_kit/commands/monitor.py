@@ -9,7 +9,6 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
-from puppy_kit.utils.confirm import confirm_action
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
 from puppy_kit.utils.watch import watch_loop
 
@@ -426,24 +425,6 @@ def update_monitor_cmd(
     else:
         console.print(f"[green]✓ Monitor {monitor_id} updated[/green]")
         console.print(f"[bold]Name:[/bold] {result.name}")
-
-
-@monitor.command(name="delete")
-@click.argument("monitor_id", type=int)
-@click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")
-@handle_api_error
-def delete_monitor_cmd(monitor_id, confirmed):
-    """Delete a monitor by ID."""
-    if not confirm_action(f"Delete monitor {monitor_id}?", confirmed):
-        console.print("[yellow]Aborted[/yellow]")
-        return
-
-    client = get_datadog_client()
-
-    with console.status(f"[cyan]Deleting monitor {monitor_id}...[/cyan]"):
-        client.monitors.delete_monitor(monitor_id)
-
-    console.print(f"[green]✓ Monitor {monitor_id} deleted[/green]")
 
 
 @monitor.command(name="mute-all")

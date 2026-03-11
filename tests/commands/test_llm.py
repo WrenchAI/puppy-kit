@@ -78,8 +78,16 @@ def test_projects_empty(mock_client, runner):
         assert "Total projects: 0" in result.output
 
 
-def _create_mock_span(span_id, model, span_kind, status="ok", ml_app=None,
-                     input_tokens=10, output_tokens=20, duration_us=500000):
+def _create_mock_span(
+    span_id,
+    model,
+    span_kind,
+    status="ok",
+    ml_app=None,
+    input_tokens=10,
+    output_tokens=20,
+    duration_us=500000,
+):
     """Create a mock LLM Obs span."""
     return {
         "id": span_id,
@@ -119,8 +127,7 @@ def test_traces_table(mock_client, runner):
     with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
         with patch("puppy_kit.commands.llm.requests.post") as mock_post:
             mock_post.return_value = MagicMock(
-                status_code=200,
-                json=MagicMock(return_value=mock_response_data)
+                status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
             result = runner.invoke(llm, ["traces", "--from", "1h"])
@@ -149,8 +156,7 @@ def test_traces_json(mock_client, runner):
     with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
         with patch("puppy_kit.commands.llm.requests.post") as mock_post:
             mock_post.return_value = MagicMock(
-                status_code=200,
-                json=MagicMock(return_value=mock_response_data)
+                status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
             result = runner.invoke(llm, ["traces", "--format", "json"])
@@ -178,8 +184,7 @@ def test_traces_empty(mock_client, runner):
     with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
         with patch("puppy_kit.commands.llm.requests.post") as mock_post:
             mock_post.return_value = MagicMock(
-                status_code=200,
-                json=MagicMock(return_value=mock_response_data)
+                status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
             result = runner.invoke(llm, ["traces"])
@@ -205,8 +210,7 @@ def test_traces_span_kind_filter(mock_client, runner):
     with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
         with patch("puppy_kit.commands.llm.requests.post") as mock_post:
             mock_post.return_value = MagicMock(
-                status_code=200,
-                json=MagicMock(return_value=mock_response_data)
+                status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
             result = runner.invoke(llm, ["traces", "--span-kind", "agent"])
@@ -235,8 +239,7 @@ def test_traces_ml_app_filter(mock_client, runner):
     with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
         with patch("puppy_kit.commands.llm.requests.post") as mock_post:
             mock_post.return_value = MagicMock(
-                status_code=200,
-                json=MagicMock(return_value=mock_response_data)
+                status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
             result = runner.invoke(llm, ["traces", "--ml-app", "ai-axis"])
@@ -266,8 +269,7 @@ def test_traces_model_filter_client_side(mock_client, runner):
     with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
         with patch("puppy_kit.commands.llm.requests.post") as mock_post:
             mock_post.return_value = MagicMock(
-                status_code=200,
-                json=MagicMock(return_value=mock_response_data)
+                status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
             result = runner.invoke(llm, ["traces", "--model", "gpt-4o", "--format", "json"])

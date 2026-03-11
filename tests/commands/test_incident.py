@@ -39,7 +39,9 @@ def _make_incident(
 
 def _make_search_response(incidents, next_offset=None, offset=0, size=None):
     """Create a mock search_incidents response."""
-    pagination = Mock(next_offset=next_offset, offset=offset, size=size if size is not None else len(incidents))
+    pagination = Mock(
+        next_offset=next_offset, offset=offset, size=size if size is not None else len(incidents)
+    )
     meta = Mock(pagination=pagination)
     return Mock(included=incidents, meta=meta)
 
@@ -128,7 +130,9 @@ class TestListIncidents:
 
     def test_list_incidents_since_stops_early_and_filters_page(self, mock_client, runner):
         """Test since cutoff filters the final page and stops pagination once older incidents appear."""
-        recent = _make_incident("inc-1", "Newest", "SEV-1", "active", created="2026-02-27T10:00:00Z")
+        recent = _make_incident(
+            "inc-1", "Newest", "SEV-1", "active", created="2026-02-27T10:00:00Z"
+        )
         keep = _make_incident("inc-2", "Keep", "SEV-2", "stable", created="2026-02-25T12:00:00Z")
         old = _make_incident("inc-3", "Old", "SEV-3", "resolved", created="2026-02-24T23:59:59Z")
         mock_client.incidents.search_incidents.side_effect = [
@@ -146,7 +150,9 @@ class TestListIncidents:
 
     def test_list_incidents_since_accepts_relative_hours(self, mock_client, runner):
         """Test relative since parsing for hour-based cutoffs."""
-        recent = _make_incident("inc-1", "Recent", "SEV-1", "active", created="2026-03-11T10:00:00Z")
+        recent = _make_incident(
+            "inc-1", "Recent", "SEV-1", "active", created="2026-03-11T10:00:00Z"
+        )
         old = _make_incident("inc-2", "Old", "SEV-2", "resolved", created="2026-03-10T07:59:59Z")
         mock_client.incidents.search_incidents.return_value = _make_search_response([recent, old])
 

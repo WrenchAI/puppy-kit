@@ -266,3 +266,43 @@ def get_value(key):
         value = mask_key(value)
 
     console.print(value)
+
+
+@config.command(name="test")
+def test_credentials():
+    """Test that authentication credentials are valid.
+
+    Makes a simple read-only API call to verify DD_API_KEY and DD_APP_KEY
+    are configured correctly.
+    """
+    from puppy_kit.client import get_datadog_client
+
+    try:
+        client = get_datadog_client()
+        # Make a cheap read-only call to test credentials
+        client.monitors.list_monitors(limit=1)
+    except Exception as e:
+        # Check if it's an auth error
+        error_msg = str(e).lower()
+        if "401" in error_msg or "403" in error_msg or "authentication" in error_msg:
+            console.print("[red]✗ Auth FAILED[/red] — check DD_API_KEY and DD_APP_KEY")
+            sys.exit(2)
+        else:
+            # Other API errors
+            console.print(f"[red]✗ API Error[/red] — {e}")
+            sys.exit(1)
+
+    # Success
+    try:
+        config_obj = get_datadog_client().api_client.configuration
+        site = getattr(config_obj, "server_variables", {}).get("site", "datadoghq.com")
+    except Exception:
+        site = "unknown"
+
+    console.print("[green]✓ Auth OK[/green] — credentials are valid")
+    console.print(f"  Site: {site}")
+
+    # Try to get the API key from environment or config
+    api_key = os.environ.get("DD_API_KEY", "")
+    if api_key:
+        console.print(f"  API key: ***{api_key[-4:]}")

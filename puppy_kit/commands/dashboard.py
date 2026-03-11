@@ -7,7 +7,6 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
-from puppy_kit.utils.confirm import confirm_action
 from puppy_kit.utils.export import export_to_json
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
 
@@ -214,24 +213,6 @@ def update_dashboard_cmd(dashboard_id, file_data, fmt):
     else:
         console.print(f"[green]Dashboard {dashboard_id} updated[/green]")
         console.print(f"[bold]Title:[/bold] {result.title}")
-
-
-@dashboard.command(name="delete")
-@click.argument("dashboard_id")
-@click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")
-@handle_api_error
-def delete_dashboard_cmd(dashboard_id, confirmed):
-    """Delete a dashboard by ID."""
-    if not confirm_action(f"Delete dashboard {dashboard_id}?", confirmed):
-        console.print("[yellow]Aborted[/yellow]")
-        return
-
-    client = get_datadog_client()
-
-    with console.status(f"[cyan]Deleting dashboard {dashboard_id}...[/cyan]"):
-        client.dashboards.delete_dashboard(dashboard_id)
-
-    console.print(f"[green]Dashboard {dashboard_id} deleted[/green]")
 
 
 @dashboard.command(name="export")

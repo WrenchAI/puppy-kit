@@ -402,41 +402,6 @@ def test_dashboard_update_json_output(mock_client, runner, tmp_path):
 # ============================================================================
 
 
-def test_dashboard_delete_with_confirm_flag(mock_client, runner):
-    """Test deleting a dashboard with --confirm flag (no prompt)."""
-    mock_client.dashboards.delete_dashboard.return_value = Mock()
-
-    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["delete", "abc-123", "--confirm"])
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "abc-123" in result.output
-        assert "deleted" in result.output.lower()
-        mock_client.dashboards.delete_dashboard.assert_called_once_with("abc-123")
-
-
-def test_dashboard_delete_interactive_confirm_yes(mock_client, runner):
-    """Test deleting a dashboard with interactive confirmation (user says yes)."""
-    mock_client.dashboards.delete_dashboard.return_value = Mock()
-
-    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["delete", "abc-123"], input="y\n")
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "deleted" in result.output.lower()
-        mock_client.dashboards.delete_dashboard.assert_called_once_with("abc-123")
-
-
-def test_dashboard_delete_interactive_confirm_no(mock_client, runner):
-    """Test deleting a dashboard with interactive confirmation (user says no)."""
-    with patch("puppy_kit.commands.dashboard.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(dashboard, ["delete", "abc-123"], input="n\n")
-
-        assert result.exit_code == 0
-        assert "Aborted" in result.output
-        mock_client.dashboards.delete_dashboard.assert_not_called()
-
-
 # ============================================================================
 # Dashboard Export Command Tests
 # ============================================================================

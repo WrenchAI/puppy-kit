@@ -58,8 +58,6 @@ ALIASES = {
     "mon": "monitor",
     "dash": "dashboard",
     "dt": "downtime",
-    "sc": "service-check",
-    "inv": "investigate",
 }
 
 
@@ -93,10 +91,12 @@ class AliasGroup(click.Group):
 )
 @click.pass_context
 def main(ctx, profile):
-    """puppy-kit: Datadog CLI + MCP server for AI-driven incident management.
+    """puppy-kit: Datadog CLI for AI-driven incident triage.
 
-    Query monitors, metrics, events, hosts, APM traces, logs, and more
-    from your terminal with rich output and smart defaults.
+    Compact, LLM-optimised read-only CLI for querying Datadog.
+
+    Commands: monitor, metric, event, host, apm, logs, dbm, service-check,
+    tag, downtime, dashboard, rum, incident, user, usage, ci, cost, llm.
 
     Configuration:
         DD_API_KEY - Datadog API key (required)
@@ -104,9 +104,10 @@ def main(ctx, profile):
         DD_SITE - Datadog site (default: datadoghq.com)
 
     Examples:
-        puppy monitor list --state Alert
-        puppy apm traces my-service --from 1h
-        puppy logs search "status:error" --service my-api
+        puppy config test
+        puppy monitor list --limit 5
+        puppy apm services --from 24h
+        puppy logs search "status:error" --from 1h --limit 10
     """
     ctx.ensure_object(dict)
     ctx.obj["profile"] = profile
@@ -129,17 +130,11 @@ from puppy_kit.commands.host import host
 from puppy_kit.commands.apm import apm
 from puppy_kit.commands.logs import logs
 from puppy_kit.commands.dbm import dbm
-from puppy_kit.commands.investigate import investigate
 from puppy_kit.commands.service_check import service_check
 from puppy_kit.commands.tag import tag
 from puppy_kit.commands.downtime import downtime
-from puppy_kit.commands.slo import slo
 from puppy_kit.commands.dashboard import dashboard
-from puppy_kit.commands.synthetics import synthetics
 from puppy_kit.commands.rum import rum
-from puppy_kit.commands.notebook import notebook
-from puppy_kit.commands.completion import completion
-from puppy_kit.commands.apply import apply_cmd, diff_cmd
 from puppy_kit.commands.config import config
 from puppy_kit.commands.incident import incident
 from puppy_kit.commands.user import user
@@ -155,18 +150,11 @@ main.add_command(host)
 main.add_command(apm)
 main.add_command(logs)
 main.add_command(dbm)
-main.add_command(investigate)
 main.add_command(service_check)
 main.add_command(tag)
 main.add_command(downtime)
-main.add_command(slo)
 main.add_command(dashboard)
-main.add_command(synthetics)
 main.add_command(rum)
-main.add_command(notebook)
-main.add_command(completion)
-main.add_command(apply_cmd)
-main.add_command(diff_cmd)
 main.add_command(config)
 main.add_command(incident)
 main.add_command(user)

@@ -111,26 +111,3 @@ def replace_tags(host, tags, source):
     console.print(f"[green]Replaced tags on {host} ({len(result_tags)} tag(s))[/green]")
     for t in result_tags:
         console.print(f"  [cyan]{t}[/cyan]")
-
-
-@tag.command(name="detach")
-@click.argument("host")
-@click.option("--source", help="Tag source to detach (e.g., users, chef, puppet)")
-@handle_api_error
-def detach_tags(host, source):
-    """Detach (remove) all tags from a host.
-
-    Removes all tags for a single host. If no source is specified,
-    only deletes from the source "users".
-    """
-    client = get_datadog_client()
-
-    kwargs = {"host_name": host}
-    if source:
-        kwargs["source"] = source
-
-    with console.status(f"[cyan]Detaching tags from {host}...[/cyan]"):
-        client.tags.delete_host_tags(**kwargs)
-
-    source_msg = f" (source: {source})" if source else ""
-    console.print(f"[green]Detached all tags from {host}{source_msg}[/green]")
