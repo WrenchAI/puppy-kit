@@ -7,6 +7,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -46,7 +47,7 @@ def list_hosts(env, format):
                     "status": h.status,
                 }
             )
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Database Hosts")
         table.add_column("Host", style="cyan")
@@ -117,7 +118,7 @@ def list_queries(from_time, to_time, service, database, sort_by, limit, format):
                     "database": q.database,
                 }
             )
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Database Queries")
         table.add_column("Query ID", style="cyan")
@@ -176,7 +177,7 @@ def explain_query(query_id, format):
             "service": plan.service,
             "cost": plan.cost,
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"\n[bold cyan]Query Plan for {plan.query_id}[/bold cyan]")
         console.print(f"[dim]Database: {plan.database}[/dim]")
@@ -224,7 +225,7 @@ def list_samples(query_id, from_time, to_time, limit, format):
                     "parameters": s.parameters,
                 }
             )
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title=f"Query Samples for {query_id}")
         table.add_column("Time", style="cyan", width=20)

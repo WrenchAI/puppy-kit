@@ -19,7 +19,7 @@ def test_apm_services_list_json_format(mock_client, runner):
         result = runner.invoke(apm, ["services", "--format", "json"])
 
         assert result.exit_code == 0
-        services = json.loads(result.output)
+        services = json.loads(result.output)["data"]
         assert len(services) == 3
         names = [s["name"] for s in services]
         assert "web-prod-blue" in names
@@ -66,7 +66,7 @@ def test_apm_services_sorted(mock_client, runner):
     with patch("puppy_kit.commands.apm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(apm, ["services", "--format", "json"])
         assert result.exit_code == 0
-        services = json.loads(result.output)
+        services = json.loads(result.output)["data"]
         names = [s["name"] for s in services]
         assert "zebra-service" in names
         assert "alpha-service" in names
@@ -92,7 +92,7 @@ def test_apm_services_includes_both_web_fleets(mock_client, runner):
     with patch("puppy_kit.commands.apm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(apm, ["services", "--format", "json"])
         assert result.exit_code == 0
-        services = json.loads(result.output)
+        services = json.loads(result.output)["data"]
         names = [s["name"] for s in services]
         # Both blue and green fleets should be present
         assert "web-prod-blue" in names
@@ -126,7 +126,7 @@ def test_apm_traces_basic_search(mock_client, runner):
         result = runner.invoke(apm, ["traces", "web-prod-blue", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["trace_id"] == "trace123"
         assert output[0]["resource"] == "GET /api/users"
@@ -201,7 +201,7 @@ def test_apm_traces_duration_conversion(mock_client, runner):
     with patch("puppy_kit.commands.apm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(apm, ["traces", "test-service", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         # Duration should be 500ms (500,000,000 ns / 1,000,000 = 500ms)
         assert output[0]["duration_ms"] == 500.0
 
@@ -269,7 +269,7 @@ def test_apm_analytics_count_metric(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         assert output[0]["resource_name"] == "GET /api/users"
         assert output[0]["count"] == 1250
@@ -310,7 +310,7 @@ def test_apm_analytics_p99_metric(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         # P99 values should be converted from ns to ms
         assert output[0]["p99"] == 250.0
@@ -336,7 +336,7 @@ def test_apm_analytics_without_groupby(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["count"] == 5432
 

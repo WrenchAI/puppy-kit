@@ -24,7 +24,7 @@ def test_dbm_hosts_list_all(mock_client, runner):
     with patch("puppy_kit.commands.dbm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dbm, ["hosts", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 3
 
 
@@ -57,7 +57,7 @@ def test_dbm_hosts_json_format(mock_client, runner):
     with patch("puppy_kit.commands.dbm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dbm, ["hosts", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         host = output[0]
         assert host["host"] == "db-prod-01"
@@ -126,7 +126,7 @@ def test_dbm_queries_top_by_latency(mock_client, runner):
     with patch("puppy_kit.commands.dbm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dbm, ["queries", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         # Default sort is avg_latency
         call_kwargs = mock_client.dbm.list_queries.call_args.kwargs
@@ -205,7 +205,7 @@ def test_dbm_queries_json_format(mock_client, runner):
     with patch("puppy_kit.commands.dbm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dbm, ["queries", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         q = output[0]
         assert q["query_id"] == "q1"
@@ -319,7 +319,7 @@ def test_dbm_explain_json_format(mock_client, runner):
     with patch("puppy_kit.commands.dbm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dbm, ["explain", "q1", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["query_id"] == "q1"
         assert output["plan"] == "Index Scan using idx_users_id on users"
         assert output["database"] == "users_db"
@@ -402,7 +402,7 @@ def test_dbm_samples_list(mock_client, runner):
     with patch("puppy_kit.commands.dbm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dbm, ["samples", "q1", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 3
 
 
@@ -420,7 +420,7 @@ def test_dbm_samples_json_format(mock_client, runner):
     with patch("puppy_kit.commands.dbm.get_datadog_client", return_value=mock_client):
         result = runner.invoke(dbm, ["samples", "q1", "--format", "json"])
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         sample = output[0]
         assert "timestamp" in sample

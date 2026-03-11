@@ -58,7 +58,7 @@ def test_projects_json(mock_client, runner):
         result = runner.invoke(llm, ["projects", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["id"] == "proj-json-001"
         assert output[0]["name"] == "Test Project"
@@ -162,7 +162,7 @@ def test_traces_json(mock_client, runner):
             result = runner.invoke(llm, ["traces", "--format", "json"])
 
             assert result.exit_code == 0
-            output = json.loads(result.output)
+            output = json.loads(result.output)["data"]
             assert len(output) == 1
             assert output[0]["span_id"] == "span-json-001"
             assert output[0]["model"] == "gpt-4o"
@@ -275,7 +275,7 @@ def test_traces_model_filter_client_side(mock_client, runner):
             result = runner.invoke(llm, ["traces", "--model", "gpt-4o", "--format", "json"])
 
             assert result.exit_code == 0
-            output = json.loads(result.output)
+            output = json.loads(result.output)["data"]
             assert len(output) == 2
             assert all("gpt-4o" in item["model"] for item in output)
 

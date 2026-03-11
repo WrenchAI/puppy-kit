@@ -127,7 +127,7 @@ class TestDowntimeList:
             result = runner.invoke(downtime, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["id"] == 1
 
@@ -233,7 +233,7 @@ class TestDowntimeGet:
             result = runner.invoke(downtime, ["get", "456", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == 456
         assert output["scope"] == ["env:staging"]
 
@@ -428,7 +428,7 @@ class TestDowntimeCreate:
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == 104
 
     def test_create_scope_is_list(self, mock_client, runner):
@@ -562,7 +562,7 @@ class TestDowntimeUpdate:
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == 203
 
     def test_update_scope(self, mock_client, runner):
@@ -709,5 +709,5 @@ class TestDowntimeCancelByScope:
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["cancelled_ids"] == [5, 6]

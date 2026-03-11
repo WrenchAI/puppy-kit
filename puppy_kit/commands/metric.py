@@ -8,6 +8,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -22,11 +23,13 @@ def metric():
 @click.argument("query")
 @click.option("--from", "from_time", default="1h", help="Start time (e.g., 1h, 24h, 7d)")
 @click.option("--to", "to_time", default="now", help="End time")
+@click.option("--limit", default=100, type=int, help="Max points per series [default: 100]")
 @click.option(
     "--format", type=click.Choice(["json", "table", "csv"]), default="table", help="Output format"
 )
+@click.option("--verbose", is_flag=True, default=False, help="Show all data points")
 @handle_api_error
-def query_metric(query, from_time, to_time, format):
+def query_metric(query, from_time, to_time, limit, format, verbose):
     """Query metrics."""
     client = get_datadog_client()
 
@@ -36,7 +39,11 @@ def query_metric(query, from_time, to_time, format):
         result = client.metrics.query_metrics(_from=from_ts, to=to_ts, query=query)
 
     if format == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        output_list = []
+        if result.series:
+            for series in result.series:
+                output_list.append(series)
+        click.echo(json.dumps(json_list_response(output_list)))
     elif format == "csv":
         # CSV output for scripting
         if result.series:
@@ -56,8 +63,13 @@ def query_metric(query, from_time, to_time, format):
             table.add_column("Timestamp", style="cyan")
             table.add_column("Value", style="green", justify="right")
 
-            # Show last 20 points
-            points = series.get("pointlist", [])[-20:]
+            # Show points based on verbose flag
+            all_points = series.get("pointlist", [])
+            if verbose:
+                points = all_points
+            else:
+                points = all_points[-limit:]
+
             for point in points:
                 timestamp, value = point.value
                 from datetime import datetime
@@ -66,7 +78,7 @@ def query_metric(query, from_time, to_time, format):
                 table.add_row(dt.strftime("%Y-%m-%d %H:%M:%S"), f"{value:.2f}")
 
             console.print(table)
-            console.print(f"[dim]Total points: {len(series.get('pointlist', []))}[/dim]\n")
+            console.print(f"[dim]Total points: {len(all_points)}[/dim]\n")
 
 
 @metric.command(name="search")

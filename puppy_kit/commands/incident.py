@@ -11,6 +11,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.confirm import confirm_action
+from puppy_kit.utils.format import json_list_response
 
 warnings.filterwarnings("ignore", message=".*is unstable.*")
 
@@ -209,7 +210,7 @@ def list_incidents(
                     "modified": _stringify_datetime(_get_attr(attrs, "modified", "")),
                 }
             )
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Incidents")
         table.add_column("ID", style="cyan", width=36)
@@ -271,7 +272,7 @@ def get_incident(incident_id, format):
             "created": _stringify_datetime(getattr(attrs, "created", "")),
             "modified": _stringify_datetime(getattr(attrs, "modified", "")),
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"\n[bold cyan]Incident {inc.id}[/bold cyan]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -369,7 +370,7 @@ def create_incident(title, severity, team, assignee, format):
             "severity": _stringify_enum(getattr(attrs, "severity", severity or "unknown")),
             "status": _stringify_enum(getattr(attrs, "status", "unknown")),
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"[green]Incident {inc.id} created[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -448,7 +449,7 @@ def update_incident(incident_id, title, status, severity, assignee, format):
             "status": _stringify_enum(getattr(attrs, "status", "unknown")),
             "assignee": getattr(attrs, "assignee", ""),
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"[green]Incident {incident_id} updated[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")

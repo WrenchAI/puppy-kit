@@ -36,7 +36,7 @@ def test_tag_list_json_format(mock_client, runner):
         result = runner.invoke(tag, ["list", "web-prod-01", "--format", "json"])
 
     assert result.exit_code == 0
-    output = json.loads(result.output)
+    output = json.loads(result.output).get("data", [])
     assert output["host"] == "web-prod-01"
     assert "env:prod" in output["tags"]
     assert "service:web" in output["tags"]

@@ -90,13 +90,12 @@ def test_metric_query_json_format(mock_client, runner):
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Parse JSON output
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
 
-        # Verify structure
-        assert "series" in output
-        assert len(output["series"]) == 1
-        assert output["series"][0]["metric"] == "system.cpu.user"
-        assert len(output["series"][0]["pointlist"]) == 3
+        # Verify structure - output is now a list of series
+        assert len(output) == 1
+        assert output[0]["metric"] == "system.cpu.user"
+        assert len(output[0]["pointlist"]) == 3
 
 
 def test_metric_query_csv_format(mock_client, runner):
@@ -367,10 +366,10 @@ def test_metric_query_multiple_series(mock_client, runner):
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
-        output = json.loads(result.output)
-        assert len(output["series"]) == 2
-        assert output["series"][0]["scope"] == "host:web-01"
-        assert output["series"][1]["scope"] == "host:web-02"
+        output = json.loads(result.output)["data"]
+        assert len(output) == 2
+        assert output[0]["scope"] == "host:web-01"
+        assert output[1]["scope"] == "host:web-02"
 
 
 def test_metric_query_table_format_truncates_points(mock_client, runner):

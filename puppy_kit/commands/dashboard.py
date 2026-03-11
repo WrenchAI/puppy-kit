@@ -9,6 +9,7 @@ from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
 from puppy_kit.utils.export import export_to_json
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -51,7 +52,7 @@ def list_dashboards(tags, format):
                     "url": getattr(d, "url", ""),
                 }
             )
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Dashboards", show_lines=False)
         table.add_column("ID", style="cyan", no_wrap=True)
@@ -85,7 +86,7 @@ def get_dashboard(dashboard_id, format):
         dash = client.dashboards.get_dashboard(dashboard_id)
 
     if format == "json":
-        print(json.dumps(dash.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(dash.to_dict())))
     else:
         console.print(f"\n[bold cyan]Dashboard {dash.id}[/bold cyan]")
         console.print(f"[bold]Title:[/bold] {dash.title}")
@@ -170,7 +171,7 @@ def create_dashboard_cmd(title, layout_type, description, file_data, from_stdin,
         result = client.dashboards.create_dashboard(body=body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]Dashboard {result.id} created[/green]")
         console.print(f"[bold]Title:[/bold] {result.title}")
@@ -209,7 +210,7 @@ def update_dashboard_cmd(dashboard_id, file_data, fmt):
         result = client.dashboards.update_dashboard(dashboard_id, body=file_data)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]Dashboard {dashboard_id} updated[/green]")
         console.print(f"[bold]Title:[/bold] {result.title}")
@@ -274,7 +275,7 @@ def clone_dashboard_cmd(dashboard_id, title, fmt):
         result = client.dashboards.create_dashboard(body=clone_body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]Dashboard {dashboard_id} cloned as {result.id}[/green]")
         console.print(f"[bold]Title:[/bold] {result.title}")

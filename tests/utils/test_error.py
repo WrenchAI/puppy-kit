@@ -251,7 +251,9 @@ class TestHandleApiError:
         assert call_args[0][0] == "SERVER_ERROR"
         assert call_args[0][1] == 500
         assert "Datadog API server error" in call_args[0][2]
-        assert call_args[0][3] == "Check https://status.datadoghq.com for incidents. Try again later."
+        assert (
+            call_args[0][3] == "Check https://status.datadoghq.com for incidents. Try again later."
+        )
 
     def test_400_client_error_no_retry(self, mock_emit_error, mock_sleep):
         """Test that 400 errors are treated as validation errors without retry."""

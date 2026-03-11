@@ -7,6 +7,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -72,7 +73,7 @@ def list_events(from_time, to_time, sources, priority, tags, format):
         console.print(f"\n[dim]Total events: {len(result.events)}[/dim]")
 
     elif format == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
 
 
 @event.command(name="get")

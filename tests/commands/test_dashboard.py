@@ -138,7 +138,7 @@ def test_dashboard_list_json_format(mock_client, runner):
         result = runner.invoke(dashboard, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         assert output[0]["id"] == "abc-123"
         assert output[0]["title"] == "Production Overview"
@@ -213,7 +213,7 @@ def test_dashboard_get_json_format(mock_client, runner):
         result = runner.invoke(dashboard, ["get", "def-456", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == "def-456"
         assert output["title"] == "Staging Metrics"
         assert output["layout_type"] == "free"
@@ -336,7 +336,7 @@ def test_dashboard_create_json_output(mock_client, runner):
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == "json-123"
         assert output["title"] == "JSON Dashboard"
 
@@ -393,7 +393,7 @@ def test_dashboard_update_json_output(mock_client, runner, tmp_path):
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == "abc-123"
 
 
@@ -509,7 +509,7 @@ def test_dashboard_clone_json_output(mock_client, runner):
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == "cloned-789"
         assert output["title"] == "Cloned Dashboard"
 
@@ -537,13 +537,13 @@ def test_dashboard_list_then_get_workflow(mock_client, runner):
         # List dashboards
         result = runner.invoke(dashboard, ["list", "--format", "json"])
         assert result.exit_code == 0
-        dashboards_list = json.loads(result.output)
+        dashboards_list = json.loads(result.output)["data"]
         assert len(dashboards_list) == 2
 
         # Get details of the first one
         result = runner.invoke(dashboard, ["get", "abc-123", "--format", "json"])
         assert result.exit_code == 0
-        dash_details = json.loads(result.output)
+        dash_details = json.loads(result.output)["data"]
         assert dash_details["id"] == "abc-123"
 
 

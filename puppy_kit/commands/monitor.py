@@ -11,6 +11,7 @@ from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
 from puppy_kit.utils.watch import watch_loop
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -116,7 +117,7 @@ def list_monitors(tags, state, format, watch, interval):
             console.print(f"\n[dim]Total monitors: {len(monitors)}[/dim]")
 
         elif format == "json":
-            print(json.dumps([m.to_dict() for m in monitors], indent=2, default=str))
+            click.echo(json.dumps(json_list_response([m.to_dict() for m in monitors])))
 
         elif format == "markdown":
             print("| ID | State | Name |")
@@ -168,7 +169,7 @@ def get_monitor(monitor_id, format):
             console.print(f"[bold]Modified:[/bold] {mon.modified}")
 
     elif format == "json":
-        print(json.dumps(mon.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(mon.to_dict())))
 
 
 @monitor.command(name="mute")
@@ -350,7 +351,7 @@ def create_monitor_cmd(
         result = client.monitors.create_monitor(body=monitor_body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]✓ Monitor {result.id} created[/green]")
         console.print(f"[bold]Name:[/bold] {result.name}")
@@ -421,7 +422,7 @@ def update_monitor_cmd(
         result = client.monitors.update_monitor(monitor_id, body=update_body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]✓ Monitor {monitor_id} updated[/green]")
         console.print(f"[bold]Name:[/bold] {result.name}")

@@ -7,6 +7,7 @@ from rich.table import Table
 from datadog_api_client.v1.model.host_tags import HostTags
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -39,7 +40,7 @@ def list_tags(host, source, fmt):
 
     if fmt == "json":
         output = {"host": host, "tags": tags}
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         if not tags:
             console.print(f"[dim]No tags found for {host}[/dim]")

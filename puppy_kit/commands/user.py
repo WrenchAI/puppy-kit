@@ -7,6 +7,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.confirm import confirm_action
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -90,7 +91,7 @@ def list_users(page_size, filter_text, filter_status, sort, all_pages, format):
                     "created_at": str(getattr(attrs, "created_at", None)),
                 }
             )
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Users")
         table.add_column("ID", style="dim")
@@ -142,7 +143,7 @@ def get_user(user_id, format):
             "disabled": getattr(attrs, "disabled", None),
             "created_at": str(getattr(attrs, "created_at", None)),
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"\n[bold cyan]User {user_id_value}[/bold cyan]")
         console.print(f"[bold]Name:[/bold] {getattr(attrs, 'name', 'N/A')}")
@@ -209,7 +210,7 @@ def invite_user(email, role, format):
             "user_id": new_user.id,
             "status": "invitation_sent",
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"[green]Invitation sent to {email}[/green]")
         console.print(f"[dim]User ID: {new_user.id}[/dim]")

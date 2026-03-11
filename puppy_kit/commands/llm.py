@@ -13,6 +13,7 @@ from rich.table import Table
 
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.format import json_list_response
 from puppy_kit.utils.time import parse_time_range
 
 warnings.filterwarnings("ignore", message=".*is unstable.*")
@@ -328,7 +329,7 @@ def traces(
 
     # Output as JSON or table
     if fmt == "json":
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output), default=str))
     else:
         table = Table(title="LLM Observability Traces")
         table.add_column("Kind", style="cyan", width=12)
@@ -388,7 +389,7 @@ def projects(format: str, page_size: int) -> None:
                 obj["created_at"] = getattr(attrs, "created_at", None)
                 obj["updated_at"] = getattr(attrs, "updated_at", None)
             output.append(obj)
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output), default=str))
     else:
         table = Table(title="LLM Observability Projects")
         table.add_column("ID", style="cyan", width=20)
@@ -459,7 +460,7 @@ def datasets(format: str, page_size: int) -> None:
                 obj["created_at"] = getattr(attrs, "created_at", None)
                 obj["current_version"] = getattr(attrs, "current_version", None)
             output.append(obj)
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output), default=str))
     else:
         table = Table(title="LLM Observability Datasets")
         table.add_column("ID", style="cyan", width=20)
@@ -523,7 +524,7 @@ def experiments(format: str, page_size: int) -> None:
                 obj["created_at"] = getattr(attrs, "created_at", None)
                 obj["updated_at"] = getattr(attrs, "updated_at", None)
             output.append(obj)
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output), default=str))
     else:
         table = Table(title="LLM Observability Experiments")
         table.add_column("ID", style="cyan", width=20)
@@ -617,7 +618,7 @@ def records(dataset_id: str, project_id: str | None, format: str, page_size: int
                 "metadata": getattr(item, "metadata", None),
             }
             output.append(obj)
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output), default=str))
     else:
         table = Table(title=f"Dataset Records: {dataset_id}")
         table.add_column("ID", style="cyan", width=18)

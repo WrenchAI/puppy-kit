@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -120,7 +121,7 @@ def summary(from_date, to_date, format):
                 response, "ingested_events_bytes_agg_sum", None
             ),
         }
-        print(json.dumps(data, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(data)))
     else:
         table = Table(title=f"Usage Summary ({start_d} to {end_d})")
         table.add_column("Metric", style="cyan")
@@ -188,7 +189,7 @@ def hosts_usage(from_time, to_time, format):
                     "apm_host_count": getattr(entry, "apm_host_count", None),
                 }
             )
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Host Usage")
         table.add_column("Hour", style="cyan")
@@ -250,7 +251,7 @@ def logs_usage(from_time, to_time, format):
                     "indexed_events_count": getattr(entry, "indexed_events_count", None),
                 }
             )
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Log Usage")
         table.add_column("Hour", style="cyan")
@@ -312,7 +313,7 @@ def top_avg_metrics(month_str, format):
                     "metric_category": getattr(entry, "metric_category", None),
                 }
             )
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title=f"Top Average Metrics ({month_dt.strftime('%Y-%m')})")
         table.add_column("Metric Name", style="cyan", min_width=30)

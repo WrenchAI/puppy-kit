@@ -14,6 +14,7 @@ from rich.text import Text
 
 from puppy_kit.client import DatadogClient, get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -299,7 +300,7 @@ def summary(output_format: str, show_all: bool, sort_by: str) -> None:
             "previous_meta": vars(getattr(previous_payload, "meta", SimpleNamespace())),
             "rows": rows,
         }
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
         return
 
     table = Table(title=f"Estimated Cost Summary ({current_month.isoformat()})")
@@ -405,7 +406,7 @@ def month_over_month(output_format: str, threshold: float, show_all: bool) -> No
             "previous_meta": vars(getattr(previous_payload, "meta", SimpleNamespace())),
             "rows": rows,
         }
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
         return
 
     table = Table(

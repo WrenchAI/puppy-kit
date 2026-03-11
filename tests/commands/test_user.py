@@ -121,7 +121,7 @@ def test_list_users_json(mock_client, runner):
         result = runner.invoke(user, ["list", "--page-size", "2", "--format", "json"])
 
     assert result.exit_code == 0
-    output = json.loads(result.output)
+    output = json.loads(result.output)["data"]
     assert len(output) == 2
     assert output[0]["id"] == "user-1"
     assert output[0]["name"] == "Alice Smith"
@@ -178,7 +178,7 @@ def test_get_user_json(mock_client, runner):
         result = runner.invoke(user, ["get", "user-1", "--format", "json"])
 
     assert result.exit_code == 0
-    output = json.loads(result.output)
+    output = json.loads(result.output)["data"]
     assert output["id"] == "user-1"
     assert output["name"] == "Alice Smith"
     assert output["email"] == "alice@example.com"
@@ -222,7 +222,7 @@ def test_invite_user_json(mock_client, runner):
         result = runner.invoke(user, ["invite", "--email", "test@example.com", "--format", "json"])
 
     assert result.exit_code == 0
-    output = json.loads(result.output)
+    output = json.loads(result.output)["data"]
     assert output["email"] == "test@example.com"
     assert output["user_id"] == "new-user-456"
     assert output["status"] == "invitation_sent"

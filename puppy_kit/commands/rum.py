@@ -8,6 +8,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -69,7 +70,7 @@ def list_events(query, from_time, to_time, limit, format):
 
     if format == "json":
         output = [_format_rum_event(event) for event in events]
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="RUM Events")
         table.add_column("Time", style="dim", width=20)
@@ -166,7 +167,7 @@ def analytics(query, metric, group_by, from_time, to_time, format):
                 else:
                     result[metric] = value
             output.append(result)
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         title = f"RUM Analytics ({metric})"
         if group_by:

@@ -24,7 +24,7 @@ def test_logs_search_basic_query(mock_client, runner):
         result = runner.invoke(logs, ["search", "*", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
 
 
@@ -66,7 +66,7 @@ def test_logs_search_json_format(mock_client, runner):
         result = runner.invoke(logs, ["search", "*", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["message"] == "Test message"
         assert output[0]["service"] == "my-service"
@@ -100,7 +100,7 @@ def test_logs_search_json_includes_nested_attributes(mock_client, runner):
         result = runner.invoke(logs, ["search", "*", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         log_entry = output[0]
         assert log_entry["message"] == "Background job event"
@@ -126,7 +126,7 @@ def test_logs_search_json_empty_attributes(mock_client, runner):
         result = runner.invoke(logs, ["search", "*", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output[0]["attributes"] == {}
 
 
@@ -148,7 +148,7 @@ def test_logs_trace_json_includes_nested_attributes(mock_client, runner):
         result = runner.invoke(logs, ["trace", "abc123", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output[0]["attributes"]["http.method"] == "GET"
         assert output[0]["attributes"]["http.status_code"] == 500
 
@@ -247,7 +247,7 @@ def test_logs_tail_basic(mock_client, runner):
         result = runner.invoke(logs, ["tail", "*", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["message"] == "Recent log entry"
 
@@ -356,7 +356,7 @@ def test_logs_query_count_by_service(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         assert output[0]["service"] == "web-api"
         assert output[0]["count"] == 1500
@@ -397,7 +397,7 @@ def test_logs_query_count_by_status(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         assert output[0]["status"] == "error"
         assert output[0]["count"] == 250
@@ -422,7 +422,7 @@ def test_logs_query_json_format(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert isinstance(output, list)
         assert len(output) == 1
 
@@ -472,7 +472,7 @@ def test_logs_query_without_groupby(mock_client, runner):
         result = runner.invoke(logs, ["query", "--metric", "count", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["count"] == 9876
 
@@ -510,7 +510,7 @@ def test_logs_trace_basic(mock_client, runner):
         result = runner.invoke(logs, ["trace", "abc123", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
 
 
@@ -529,7 +529,7 @@ def test_logs_trace_json_format(mock_client, runner):
         result = runner.invoke(logs, ["trace", "trace-xyz", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["message"] == "Trace log"
         assert output[0]["service"] == "web-api"
@@ -706,7 +706,7 @@ def test_logs_tail_without_follow_runs_normally(mock_client, runner):
         result = runner.invoke(logs, ["tail", "*", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["message"] == "Normal tail log"
         # list_logs should be called exactly once
@@ -767,7 +767,7 @@ def test_logs_search_missing_message_attribute(mock_client, runner):
 
         # Should not crash, should handle missing attributes gracefully
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         # Should have fallback values for missing attributes
         assert "message" in output[0]
@@ -831,5 +831,5 @@ def test_logs_tail_missing_attributes(mock_client, runner):
 
         # Should not crash
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1

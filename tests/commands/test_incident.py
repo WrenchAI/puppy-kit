@@ -82,7 +82,7 @@ class TestListIncidents:
             result = runner.invoke(incident, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         assert output[0]["id"] == "inc-1"
         assert output[0]["title"] == "Service outage"
@@ -144,7 +144,7 @@ class TestListIncidents:
             result = runner.invoke(incident, ["list", "--format", "json", "--since", "2026-02-25"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert [item["id"] for item in output] == ["inc-1", "inc-2"]
         assert mock_client.incidents.search_incidents.call_count == 2
 
@@ -168,7 +168,7 @@ class TestListIncidents:
                 )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert [item["id"] for item in output] == ["inc-1"]
 
     def test_list_incidents_rejects_invalid_since(self, mock_client, runner):
@@ -226,7 +226,7 @@ class TestGetIncident:
             result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == "inc-1"
         assert output["title"] == "Service outage"
         assert output["severity"] == "SEV-1"
@@ -275,7 +275,7 @@ class TestCreateIncident:
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == "inc-new"
         assert output["severity"] == "SEV-2"
 

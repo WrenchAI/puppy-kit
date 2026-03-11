@@ -8,6 +8,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import truncate, json_list_response
 from puppy_kit.utils.spans import aggregate_spans
 
 console = Console()
@@ -42,7 +43,7 @@ def list_services(format):
         )
 
     if format == "json":
-        print(json.dumps(services, indent=2))
+        click.echo(json.dumps(json_list_response(services)))
     else:
         table = Table(title="APM Services")
         table.add_column("Service", style="cyan")
@@ -64,11 +65,12 @@ def list_services(format):
 @click.argument("service")
 @click.option("--from", "from_time", default="1h", help="Start time (e.g., 1h, 24h, 7d)")
 @click.option("--to", "to_time", default="now", help="End time")
-@click.option("--limit", default=50, type=int, help="Max traces (max: 1000)")
+@click.option("--limit", default=100, type=int, help="Max traces [default: 100]")
 @click.option("--filter", "extra_filter", help="Additional filter query")
 @click.option("--format", type=click.Choice(["json", "table"]), default="table")
+@click.option("--verbose", is_flag=True, default=False, help="Show all span details")
 @handle_api_error
-def search_traces(service, from_time, to_time, limit, extra_filter, format):
+def search_traces(service, from_time, to_time, limit, extra_filter, format, verbose):
     """Search traces for a service.
 
     Rate limit: 300 requests/hour for spans API.
@@ -98,24 +100,26 @@ def search_traces(service, from_time, to_time, limit, extra_filter, format):
             attrs = span.attributes
             duration_ms = (attrs.duration / 1_000_000) if hasattr(attrs, "duration") else 0
 
-            output.append(
-                {
-                    "trace_id": attrs.trace_id,
-                    "span_id": attrs.span_id,
-                    "service": attrs.service,
-                    "resource": attrs.resource_name,
-                    "duration_ms": round(duration_ms, 2),
-                    "timestamp": (
-                        attrs.start_timestamp.isoformat() if attrs.start_timestamp else None
-                    ),
-                }
-            )
-        print(json.dumps(output, indent=2))
+            span_dict = {
+                "trace_id": attrs.trace_id,
+                "span_id": attrs.span_id,
+                "service": attrs.service,
+                "resource": attrs.resource_name,
+                "duration_ms": round(duration_ms, 2),
+                "timestamp": (attrs.start_timestamp.isoformat() if attrs.start_timestamp else None),
+            }
+            if verbose:
+                # Include all details
+                span_dict["span_object"] = span.to_dict()
+            output.append(span_dict)
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title=f"Traces for {service}")
         table.add_column("Trace ID", style="cyan", width=18)
         table.add_column("Resource", style="white", min_width=30)
         table.add_column("Duration (ms)", justify="right", style="yellow", width=15)
+        if verbose:
+            table.add_column("Status", style="white", width=10)
         table.add_column("Time", style="dim", width=12)
 
         for span in spans:
@@ -125,9 +129,16 @@ def search_traces(service, from_time, to_time, limit, extra_filter, format):
                 attrs.start_timestamp.strftime("%H:%M:%S") if attrs.start_timestamp else "N/A"
             )
 
-            table.add_row(
-                attrs.trace_id[:16] + "..", attrs.resource_name[:45], f"{duration_ms:.2f}", time_str
-            )
+            row_data = [
+                attrs.trace_id[:16] + "..",
+                truncate(attrs.resource_name, 80),
+                f"{duration_ms:.2f}",
+            ]
+            if verbose:
+                status = getattr(attrs, "status", "unknown")
+                row_data.append(status)
+            row_data.append(time_str)
+            table.add_row(*row_data)
 
         console.print(table)
         console.print(f"\n[dim]Total traces: {len(spans)}[/dim]")
@@ -189,7 +200,7 @@ def analytics(service, from_time, to_time, metric, group_by, format):
                 else:
                     result[metric] = value
             output.append(result)
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         title = f"Analytics for {service} ({metric})"
         if group_by:
