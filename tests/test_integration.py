@@ -1,28 +1,41 @@
 """Live integration tests — require real Datadog credentials.
 
-Skipped automatically if DD_API_KEY or DD_APP_KEY are not set.
+Skipped automatically if credentials are not available via env vars or active profile.
 Tests warn (not fail) on empty responses.
 
 Run:
     DD_API_KEY=... DD_APP_KEY=... DD_SITE=... uv run pytest tests/test_integration.py -v
+
+Or with an active profile:
+    puppy config init  # Create a profile
+    uv run pytest tests/test_integration.py -v
 """
 
-import os
 import pytest
 import warnings
 from click.testing import CliRunner
 from puppy_kit.cli import main
+from puppy_kit.config import DatadogConfig
+
+
+def _creds_available() -> bool:
+    """Return True if valid Datadog credentials are accessible via any configured source.
+
+    Checks: env vars (DD_API_KEY, DD_APP_KEY) or active profile in ~/.puppy-kit/config.json
+    """
+    try:
+        cfg = DatadogConfig()
+        return bool(cfg.api_key and cfg.app_key)
+    except Exception:
+        return False
 
 
 @pytest.fixture(scope="session", autouse=True)
-def skip_if_no_credentials():
-    """Skip all tests in this module if DD_API_KEY or DD_APP_KEY are not set."""
-    api_key = os.environ.get("DD_API_KEY")
-    app_key = os.environ.get("DD_APP_KEY")
-
-    if not api_key or not app_key:
+def require_credentials():
+    """Skip all tests in this module if Datadog credentials are not found."""
+    if not _creds_available():
         pytest.skip(
-            "Integration tests skipped: DD_API_KEY or DD_APP_KEY not set",
+            "Integration tests skipped: no Datadog credentials found (set DD_API_KEY + DD_APP_KEY or run 'puppy config init')",
             allow_module_level=True,
         )
 
