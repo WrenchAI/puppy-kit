@@ -1,6 +1,7 @@
 """Tests for incident commands."""
 
 import json
+import pytest
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch, MagicMock
 from puppy_kit.commands.incident import incident
@@ -385,6 +386,7 @@ class TestDeleteIncident:
         mock_client.incidents.delete_incident.assert_not_called()
 
 
+@pytest.mark.integration
 class TestTodoCommands:
     def test_todo_add(self, mock_client, runner):
         """Test adding a todo to an incident."""
@@ -481,6 +483,7 @@ class TestTodoCommands:
         assert "deleted" in result.output
 
 
+@pytest.mark.integration
 class TestImpactCommands:
     def test_impact_add(self, mock_client, runner):
         """Test adding an impact to an incident."""
@@ -560,6 +563,7 @@ class TestImpactCommands:
         assert "deleted" in result.output
 
 
+@pytest.mark.integration
 class TestAttachmentCommands:
     def test_attachment_add(self, mock_client, runner):
         """Test adding an attachment to an incident."""

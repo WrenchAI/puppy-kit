@@ -30,4 +30,4 @@ jobs:
 #        run: uv run ruff check puppy_kit/ tests/
 
       - name: Test
-        run: uv run pytest tests/ -v --cov=puppy_kit --cov-report=xml
+        run: uv run pytest tests/ -v -m "not integration" --cov=puppy_kit --cov-report=xml

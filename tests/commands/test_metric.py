@@ -375,7 +375,7 @@ def test_metric_query_multiple_series(mock_client, runner):
 def test_metric_query_table_format_truncates_points(mock_client, runner):
     """Test that summary table shows all points stats and verbose shows last N points."""
     # Create 30 data points
-    pointlist = [MockPoint(1609459200000 + (i * 60000), 50.0 + i) for i in range(30)]
+    pointlist = [MockPoint(1609502400000 + (i * 60000), 50.0 + i) for i in range(30)]
 
     mock_response = MockMetricQueryResponse(
         series=[
@@ -411,5 +411,5 @@ def test_metric_query_table_format_truncates_points(mock_client, runner):
         assert "Total points: 30" in result_verbose.output
         # Verbose should respect limit and only show 5 rows
         lines = result_verbose.output.split("\n")
-        data_rows = [line for line in lines if "2020-12-31" in line]
+        data_rows = [line for line in lines if "2021-01-01" in line]
         assert len(data_rows) == 5
