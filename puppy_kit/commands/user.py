@@ -19,7 +19,12 @@ def user():
 
 
 @user.command(name="list")
-@click.option("--limit", type=click.IntRange(min=1), default=None, help="Max users to fetch (alias for --page-size)")
+@click.option(
+    "--limit",
+    type=click.IntRange(min=1),
+    default=None,
+    help="Max users to fetch (alias for --page-size)",
+)
 @click.option(
     "--page-size",
     type=click.IntRange(min=1),

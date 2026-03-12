@@ -45,7 +45,6 @@ def list_events(from_time, to_time, sources, priority, tags, limit, format):
         if tags:
             kwargs["tags"] = tags
 
-
         result = client.events.list_events(**kwargs)
 
     if not result.events:
