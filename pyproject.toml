@@ -14,7 +14,7 @@ maintainers = [
 ]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">3.10"
 keywords = ["datadog", "cli", "mcp", "monitoring", "observability", "ai-agents"]
 classifiers = [
     "Development Status :: 4 - Beta",
