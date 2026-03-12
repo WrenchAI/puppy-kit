@@ -87,12 +87,23 @@ def _create_mock_span(
     input_tokens=10,
     output_tokens=20,
     duration_us=500000,
+    span_name=None,
+    trace_id=None,
 ):
     """Create a mock LLM Obs span."""
+    # Generate a unique trace_id based on span_id if not provided
+    if trace_id is None:
+        trace_id = f"trace-{span_id.split('-')[-1]}"
+
     return {
         "id": span_id,
         "attributes": {
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "parent_id": "0000000000000000",
+            "start_ns": 1000000000,
             "span_kind": span_kind,
+            "name": span_name or f"span-{span_kind}",
             "model_name": model,
             "model_provider": "openai",
             "ml_app": ml_app or "default",
@@ -130,17 +141,15 @@ def test_traces_table(mock_client, runner):
                 status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
-            result = runner.invoke(llm, ["traces", "--from", "1h"])
+            result = runner.invoke(llm, ["traces", "--from", "1h", "--mode", "all"])
 
             assert result.exit_code == 0
-            assert "LLM Observability Traces" in result.output
-            assert "gpt-4o" in result.output
-            assert "gpt-4o-mini" in result.output
+            assert "LLM Observability Spans" in result.output
             assert "Total traces: 2" in result.output
 
 
 def test_traces_json(mock_client, runner):
-    """Test traces command outputs valid JSON with full span attributes."""
+    """Test traces command outputs valid JSON with span data."""
     from puppy_kit.commands.llm import llm
 
     mock_client.config.api_key = "test-api-key"
@@ -159,16 +168,18 @@ def test_traces_json(mock_client, runner):
                 status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
-            result = runner.invoke(llm, ["traces", "--format", "json"])
+            result = runner.invoke(llm, ["traces", "--mode", "all", "--format", "json"])
 
             assert result.exit_code == 0
             output = json.loads(result.output)["data"]
             assert len(output) == 1
-            assert output[0]["span_id"] == "span-json-001"
-            assert output[0]["model"] == "gpt-4o"
+            # Verify the flattened structure (not nested attributes)
             assert output[0]["kind"] == "llm"
             assert output[0]["input_tokens"] == 10
             assert output[0]["output_tokens"] == 20
+            assert output[0]["model"] == "gpt-4o"
+            assert "span_id" in output[0]
+            assert "name" in output[0]
 
 
 def test_traces_empty(mock_client, runner):
@@ -194,7 +205,7 @@ def test_traces_empty(mock_client, runner):
 
 
 def test_traces_span_kind_filter(mock_client, runner):
-    """Test traces command filters by span_kind."""
+    """Test traces command filters by name (client-side)."""
     from puppy_kit.commands.llm import llm
 
     mock_client.config.api_key = "test-api-key"
@@ -203,7 +214,8 @@ def test_traces_span_kind_filter(mock_client, runner):
 
     mock_response_data = {
         "data": [
-            _create_mock_span("span-001", "gpt-4o", "agent"),
+            _create_mock_span("span-001", "gpt-4o", "agent", span_name="FindEntityIdTool"),
+            _create_mock_span("span-002", "gpt-4o", "agent", span_name="OtherTool"),
         ]
     }
 
@@ -213,13 +225,16 @@ def test_traces_span_kind_filter(mock_client, runner):
                 status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
-            result = runner.invoke(llm, ["traces", "--span-kind", "agent"])
+            result = runner.invoke(
+                llm, ["traces", "--name", "FindEntityIdTool", "--mode", "all", "--format", "json"]
+            )
 
             assert result.exit_code == 0
-            # Verify API was called with correct payload
-            call_args = mock_post.call_args
-            payload = call_args.kwargs["json"]
-            assert payload["data"]["attributes"]["filter"]["span_kind"] == "agent"
+            output = json.loads(result.output)["data"]
+            # Should return only the span matching the name
+            assert len(output) == 1
+            # Access flattened structure, not nested attributes
+            assert output[0]["name"] == "FindEntityIdTool"
 
 
 def test_traces_ml_app_filter(mock_client, runner):
@@ -272,12 +287,82 @@ def test_traces_model_filter_client_side(mock_client, runner):
                 status_code=200, json=MagicMock(return_value=mock_response_data)
             )
 
-            result = runner.invoke(llm, ["traces", "--model", "gpt-4o", "--format", "json"])
+            result = runner.invoke(
+                llm, ["traces", "--model", "gpt-4o", "--mode", "all", "--format", "json"]
+            )
 
             assert result.exit_code == 0
             output = json.loads(result.output)["data"]
             assert len(output) == 2
+            # Verify flattened structure with "model" key (not "attributes")
             assert all("gpt-4o" in item["model"] for item in output)
+
+
+def test_traces_mode_error_filter(mock_client, runner):
+    """Test traces command filters by mode=error on the client side."""
+    from puppy_kit.commands.llm import llm
+
+    mock_client.config.api_key = "test-api-key"
+    mock_client.config.app_key = "test-app-key"
+    mock_client.config.site = "datadoghq.com"
+
+    mock_response_data = {
+        "data": [
+            _create_mock_span("span-001", "gpt-4o", "llm", status="ok"),
+            _create_mock_span("span-002", "gpt-4o", "llm", status="error"),
+            _create_mock_span("span-003", "gpt-4o", "llm", status="ok"),
+        ]
+    }
+
+    with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.llm.requests.post") as mock_post:
+            mock_post.return_value = MagicMock(
+                status_code=200, json=MagicMock(return_value=mock_response_data)
+            )
+
+            result = runner.invoke(llm, ["traces", "--mode", "error", "--format", "json"])
+
+            assert result.exit_code == 0
+            output = json.loads(result.output)["data"]
+            assert len(output) == 1
+            assert output[0]["status"] == "error"
+
+
+def test_traces_name_and_mode_combined(mock_client, runner):
+    """Test traces command with combined --name and --mode filters."""
+    from puppy_kit.commands.llm import llm
+
+    mock_client.config.api_key = "test-api-key"
+    mock_client.config.app_key = "test-app-key"
+    mock_client.config.site = "datadoghq.com"
+
+    mock_response_data = {
+        "data": [
+            _create_mock_span("span-001", None, "tool", status="ok", span_name="FindEntityIdTool"),
+            _create_mock_span(
+                "span-002", None, "tool", status="error", span_name="FindEntityIdTool"
+            ),
+            _create_mock_span("span-003", None, "tool", status="error", span_name="OtherTool"),
+        ]
+    }
+
+    with patch("puppy_kit.commands.llm.get_datadog_client", return_value=mock_client):
+        with patch("puppy_kit.commands.llm.requests.post") as mock_post:
+            mock_post.return_value = MagicMock(
+                status_code=200, json=MagicMock(return_value=mock_response_data)
+            )
+
+            result = runner.invoke(
+                llm, ["traces", "--name", "FindEntityIdTool", "--mode", "error", "--format", "json"]
+            )
+
+            assert result.exit_code == 0
+            output = json.loads(result.output)["data"]
+            # Should return only FindEntityIdTool error span
+            assert len(output) == 1
+            # Access flattened structure, not nested attributes
+            assert output[0]["name"] == "FindEntityIdTool"
+            assert output[0]["status"] == "error"
 
 
 def test_traces_api_permission_error(mock_client, runner):

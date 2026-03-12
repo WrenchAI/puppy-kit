@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 from puppy_kit.commands.incident import incident
 
 
@@ -43,7 +43,14 @@ def _make_search_response(incidents, next_offset=None, offset=0, size=None):
         next_offset=next_offset, offset=offset, size=size if size is not None else len(incidents)
     )
     meta = Mock(pagination=pagination)
-    return Mock(included=incidents, meta=meta)
+    search_results = []
+    for inc in incidents:
+        result = Mock()
+        result.data = inc
+        search_results.append(result)
+    attributes = Mock(incidents=search_results, next_offset=None)
+    data = Mock(attributes=attributes)
+    return Mock(data=data, meta=meta)
 
 
 class TestListIncidents:
@@ -376,3 +383,259 @@ class TestDeleteIncident:
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Aborted" in result.output
         mock_client.incidents.delete_incident.assert_not_called()
+
+
+class TestTodoCommands:
+    def test_todo_add(self, mock_client, runner):
+        """Test adding a todo to an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        todo_response = {
+            "data": {
+                "id": "todo-123",
+                "type": "incident_todos",
+                "attributes": {"content": "Fix database connection"},
+            }
+        }
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.post") as mock_post:
+                mock_post.return_value = MagicMock(json=lambda: todo_response)
+                result = runner.invoke(
+                    incident, ["todo", "add", "inc-1", "--content", "Fix database connection"]
+                )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "Todo created" in result.output
+        assert "todo-123" in result.output
+
+    def test_todo_list(self, mock_client, runner):
+        """Test listing todos for an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        todos_response = {
+            "data": [
+                {
+                    "id": "todo-1",
+                    "type": "incident_todos",
+                    "attributes": {
+                        "content": "Investigate root cause",
+                        "assignees": ["@user1"],
+                        "due_date": "2026-03-12",
+                        "completed": None,
+                    },
+                },
+                {
+                    "id": "todo-2",
+                    "type": "incident_todos",
+                    "attributes": {
+                        "content": "Notify stakeholders",
+                        "assignees": [],
+                        "due_date": None,
+                        "completed": "2026-03-11T15:00:00Z",
+                    },
+                },
+            ]
+        }
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.get") as mock_get:
+                mock_get.return_value = MagicMock(json=lambda: todos_response)
+                result = runner.invoke(incident, ["todo", "list", "inc-1"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "todo-1" in result.output
+        assert "todo-2" in result.output
+        assert "Investigate root cause" in result.output
+
+    def test_todo_complete(self, mock_client, runner):
+        """Test marking a todo as complete."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.patch") as mock_patch:
+                mock_patch.return_value = MagicMock()
+                result = runner.invoke(incident, ["todo", "complete", "inc-1", "todo-123"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "marked complete" in result.output
+
+    def test_todo_delete(self, mock_client, runner):
+        """Test deleting a todo from an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.delete") as mock_delete:
+                mock_delete.return_value = MagicMock()
+                result = runner.invoke(incident, ["todo", "delete", "inc-1", "todo-123"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "deleted" in result.output
+
+
+class TestImpactCommands:
+    def test_impact_add(self, mock_client, runner):
+        """Test adding an impact to an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        impact_response = {
+            "data": {
+                "id": "impact-456",
+                "type": "incident_impacts",
+                "attributes": {"description": "Database unavailable"},
+            }
+        }
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.post") as mock_post:
+                mock_post.return_value = MagicMock(json=lambda: impact_response)
+                result = runner.invoke(
+                    incident,
+                    [
+                        "impact",
+                        "add",
+                        "inc-1",
+                        "--description",
+                        "Database unavailable",
+                        "--start",
+                        "2026-03-11T17:35:52Z",
+                    ],
+                )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "Impact created" in result.output
+        assert "impact-456" in result.output
+
+    def test_impact_list(self, mock_client, runner):
+        """Test listing impacts for an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        impacts_response = {
+            "data": [
+                {
+                    "id": "impact-1",
+                    "type": "incident_impacts",
+                    "attributes": {
+                        "description": "API down",
+                        "start_at": "2026-03-11T17:35:00Z",
+                        "end_at": "2026-03-11T17:45:00Z",
+                    },
+                }
+            ]
+        }
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.get") as mock_get:
+                mock_get.return_value = MagicMock(json=lambda: impacts_response)
+                result = runner.invoke(incident, ["impact", "list", "inc-1"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "impact-1" in result.output
+        assert "API down" in result.output
+
+    def test_impact_delete(self, mock_client, runner):
+        """Test deleting an impact from an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.delete") as mock_delete:
+                mock_delete.return_value = MagicMock()
+                result = runner.invoke(incident, ["impact", "delete", "inc-1", "impact-456"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "deleted" in result.output
+
+
+class TestAttachmentCommands:
+    def test_attachment_add(self, mock_client, runner):
+        """Test adding an attachment to an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        attachment_response = {
+            "data": {
+                "id": "att-789",
+                "type": "incident_attachments",
+                "attributes": {"attachment_type": "link"},
+            }
+        }
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.post") as mock_post:
+                mock_post.return_value = MagicMock(json=lambda: attachment_response)
+                result = runner.invoke(
+                    incident,
+                    [
+                        "attachment",
+                        "add",
+                        "inc-1",
+                        "--url",
+                        "https://github.com/org/repo/pull/123",
+                        "--title",
+                        "PR #123 - Fix",
+                    ],
+                )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "Attachment created" in result.output
+        assert "att-789" in result.output
+
+    def test_attachment_list(self, mock_client, runner):
+        """Test listing attachments for an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        attachments_response = {
+            "data": [
+                {
+                    "id": "att-1",
+                    "type": "incident_attachments",
+                    "attributes": {
+                        "attachment_type": "link",
+                        "attachment": {
+                            "documentUrl": "https://github.com/org/repo/pull/123",
+                            "title": "PR #123 - Fix",
+                        },
+                    },
+                }
+            ]
+        }
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.get") as mock_get:
+                mock_get.return_value = MagicMock(json=lambda: attachments_response)
+                result = runner.invoke(incident, ["attachment", "list", "inc-1"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "att-1" in result.output
+        assert "PR #123 - Fix" in result.output
+
+    def test_attachment_delete(self, mock_client, runner):
+        """Test deleting an attachment from an incident."""
+        inc = _make_incident("inc-uuid", "Service outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            with patch("puppy_kit.commands.incident.requests.delete") as mock_delete:
+                mock_delete.return_value = MagicMock()
+                result = runner.invoke(incident, ["attachment", "delete", "inc-1", "att-789"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "deleted" in result.output

@@ -373,7 +373,7 @@ def test_metric_query_multiple_series(mock_client, runner):
 
 
 def test_metric_query_table_format_truncates_points(mock_client, runner):
-    """Test that table format shows only last 20 points."""
+    """Test that summary table shows all points stats and verbose shows last N points."""
     # Create 30 data points
     pointlist = [MockPoint(1609459200000 + (i * 60000), 50.0 + i) for i in range(30)]
 
@@ -388,12 +388,28 @@ def test_metric_query_table_format_truncates_points(mock_client, runner):
     mock_client.metrics.query_metrics.return_value = mock_response
 
     with patch("puppy_kit.commands.metric.get_datadog_client", return_value=mock_client):
+        # Default (summary) mode should show aggregate stats
         result = runner.invoke(metric, ["query", "avg:system.load.1{*}", "--format", "table"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
-        # Should show total points count
-        assert "Total points: 30" in result.output
+        # Summary table should show all 30 points in the Points column
+        assert "30" in result.output
+        # Should show min, max, avg
+        assert "50.00" in result.output  # min
+        assert "79.00" in result.output  # max
+        assert "64.50" in result.output  # avg (sum 50..79 / 30 = 1845/30)
 
-        # Table should only display last 20 points
-        # (difficult to verify exact count in table, but we can check the message)
+        # Verbose mode should show individual points
+        result_verbose = runner.invoke(
+            metric,
+            ["query", "avg:system.load.1{*}", "--format", "table", "--verbose", "--limit", "5"],
+        )
+
+        assert result_verbose.exit_code == 0, f"Command failed: {result_verbose.output}"
+        # Should show total points count in verbose
+        assert "Total points: 30" in result_verbose.output
+        # Verbose should respect limit and only show 5 rows
+        lines = result_verbose.output.split("\n")
+        data_rows = [line for line in lines if "2020-12-31" in line]
+        assert len(data_rows) == 5

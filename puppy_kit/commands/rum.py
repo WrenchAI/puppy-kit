@@ -4,6 +4,7 @@ import click
 import json
 from datetime import datetime
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
@@ -19,6 +20,57 @@ EVENT_TYPE_COLORS = {
     "resource": "dim",
     "long_task": "magenta",
 }
+
+
+def _rum_event_details(event_type: str, attrs_dict: dict) -> str:
+    """Build a concise, event-specific summary for the RUM details column."""
+    attrs = attrs_dict if isinstance(attrs_dict, dict) else {}
+    max_length = 55
+
+    def get_nested(path):
+        current = attrs
+        for key in path.split("."):
+            if not isinstance(current, dict) or key not in current:
+                return None
+            current = current[key]
+        return current
+
+    def truncate(value):
+        if len(value) <= max_length:
+            return value
+        return value[: max_length - 3] + "..."
+
+    detail_paths = {
+        "error": ["error.message", "error.type", "error.source"],
+        "action": ["action.target.name", "action.type", "action.id"],
+        "view": ["view.url", "view.name", "view.url_path"],
+        "resource": ["resource.url", "resource.type", "resource.url_path"],
+    }
+
+    for path in detail_paths.get(str(event_type), []):
+        value = get_nested(path)
+        if isinstance(value, (str, int, float, bool)) and str(value).strip():
+            return truncate(str(value).strip())
+
+    def iter_values(value):
+        if isinstance(value, dict):
+            for nested in value.values():
+                yield from iter_values(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                yield from iter_values(nested)
+        else:
+            yield value
+
+    for value in iter_values(attrs):
+        if isinstance(value, str) and value.strip() and value.strip() not in {"{}", "[]"}:
+            return truncate(value.strip())
+
+    for key, value in attrs.items():
+        if isinstance(value, (str, int, float, bool)) and str(value).strip():
+            return truncate(f"{key}={value}")
+
+    return ""
 
 
 def _format_rum_event(event):
@@ -89,13 +141,13 @@ def list_events(query, from_time, to_time, limit, format):
             type_styled = f"[{color}]{event_type}[/{color}]"
 
             event_attrs = attrs.attributes if hasattr(attrs, "attributes") else {}
-            details = str(event_attrs)[:60] if event_attrs else ""
+            details = _rum_event_details(str(event_type), event_attrs)
 
             table.add_row(
                 time_str,
                 type_styled,
                 str(event.id)[:16] + ".." if len(str(event.id)) > 16 else str(event.id),
-                details,
+                escape(details),
             )
 
         console.print(table)

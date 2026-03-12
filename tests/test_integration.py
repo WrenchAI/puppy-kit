@@ -25,6 +25,7 @@ def _creds_available() -> bool:
     """
     try:
         from puppy_kit.config import load_config
+
         cfg = load_config()
         return bool(cfg.api_key and cfg.app_key)
     except (Exception, SystemExit):
@@ -66,6 +67,10 @@ class TestIntegration:
         if "No monitors" in result.output or result.output.strip() == "":
             warnings.warn("Monitor list returned empty results")
 
+    @pytest.mark.xfail(
+        reason="search_incidents is a rate-limited unstable API that frequently returns 429",
+        strict=False,
+    )
     def test_incident_list(self, runner):
         """Test puppy incident list --limit 5."""
         result = runner.invoke(main, ["incident", "list", "--limit", "5"])

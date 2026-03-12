@@ -205,11 +205,24 @@ def llm():
 @llm.command(name="traces")
 @click.option("--ml-app", default=None, help="Filter by ML app name (e.g., ai-axis)")
 @click.option(
+    "--name", default=None, help="Filter by span name (e.g. FindEntityIdTool, BrandKitTool)"
+)
+@click.option(
+    "--mode",
+    type=click.Choice(["error", "irrelevant", "all"]),
+    default="error",
+    show_default=True,
+    help=(
+        "'error' = hard-failed spans (error:1); "
+        "'irrelevant' = ToolNotRelevantException spans; "
+        "'all' = no error filter"
+    ),
+)
+@click.option(
     "--span-kind",
     type=click.Choice(["llm", "workflow", "agent", "tool", "task", "embedding", "retrieval"]),
-    default="llm",
-    show_default=True,
-    help="Filter by span kind [default: llm]",
+    default=None,
+    help="Filter by span kind (default: all kinds)",
 )
 @click.option("--model", default=None, help="Filter by model name (e.g., gpt-4o-mini)")
 @click.option(
@@ -219,7 +232,9 @@ def llm():
     show_default=True,
     help="Time window: Nh (hours) or Nd (days), e.g. 1h, 24h, 2d",
 )
-@click.option("--limit", type=int, default=None, help="Max traces to return (alias for --page-size)")
+@click.option(
+    "--limit", type=int, default=None, help="Max traces to return (alias for --page-size)"
+)
 @click.option("--page-size", type=int, default=25, show_default=True)
 @click.option("--verbose", is_flag=True, default=False, help="Show input/output messages")
 @click.option(
@@ -228,6 +243,8 @@ def llm():
 @handle_api_error
 def traces(
     ml_app: str | None,
+    name: str | None,
+    mode: str,
     span_kind: str | None,
     model: str | None,
     from_: str,
@@ -254,7 +271,8 @@ def traces(
         "to": to_iso,
     }
 
-    filter_block["span_kind"] = span_kind
+    if span_kind:
+        filter_block["span_kind"] = span_kind
 
     if ml_app:
         filter_block["tags"] = {"ml_app": ml_app}
@@ -299,6 +317,28 @@ def traces(
     # Extract and filter spans
     spans = data.get("data", [])
 
+    # Apply name filter (client-side, case-insensitive substring match)
+    if name:
+        name_lower = name.lower()
+        spans = [
+            s for s in spans if name_lower in str(s.get("attributes", {}).get("name", "")).lower()
+        ]
+
+    # Apply mode filter (client-side)
+    if mode == "error":
+        # Filter to spans with status=error
+        spans = [s for s in spans if s.get("attributes", {}).get("status") == "error"]
+    elif mode == "irrelevant":
+        # Filter to spans with ToolNotRelevantException
+        spans = [
+            s
+            for s in spans
+            if "ToolNotRelevantException" in str(s.get("attributes", {}).get("error_message", ""))
+            or "ToolNotRelevantException"
+            in str(s.get("attributes", {}).get("meta", {}).get("error", {}).get("type", ""))
+        ]
+    # mode == "all" -> no filter applied
+
     # Client-side filter by model if provided
     if model:
         model_lower = model.lower()
@@ -320,18 +360,18 @@ def traces(
 
         formatted = {
             "span_id": span_id,
-            "kind": attrs.get("span_kind", "N/A"),
-            "status": attrs.get("status", "N/A"),
-            "model": attrs.get("model_name", "N/A"),
-            "provider": attrs.get("model_provider", "N/A"),
-            "ml_app": attrs.get("ml_app", "N/A"),
+            "name": attrs.get("name", ""),
+            "kind": attrs.get("span_kind", ""),
+            "status": attrs.get("status", ""),
+            "model": attrs.get("model_name", ""),
+            "provider": attrs.get("model_provider", ""),
+            "ml_app": attrs.get("ml_app", ""),
             "input_tokens": metrics.get("input_tokens", 0),
             "output_tokens": metrics.get("output_tokens", 0),
             "cost": metrics.get("estimated_total_cost", 0),
             "duration": duration_ms,
-            "input": attrs.get("input", "N/A"),
-            "output": attrs.get("output", "N/A"),
-            "attributes": attrs,
+            "input": attrs.get("input", ""),
+            "output": attrs.get("output", ""),
         }
         output.append(formatted)
 
@@ -344,33 +384,37 @@ def traces(
             ]
         click.echo(json.dumps(json_list_response(output), default=str))
     else:
-        table = Table(title="LLM Observability Traces")
-        table.add_column("Kind", style="cyan", width=12)
-        table.add_column("Status", style="white", width=8)
-        table.add_column("Model", style="white", min_width=16)
-        table.add_column("Provider", style="dim", width=12)
-        table.add_column("In Tok", justify="right", style="yellow", width=10)
-        table.add_column("Out Tok", justify="right", style="yellow", width=10)
-        table.add_column("Duration", justify="right", style="yellow", width=12)
+        from rich.markup import escape
+
+        table = Table(title="LLM Observability Spans")
+        table.add_column("Name", style="cyan", min_width=22)
+        table.add_column("Kind", style="white", width=10)
+        table.add_column("Status", width=8)
+        table.add_column("Model", style="dim", width=18)
+        table.add_column("In Tok", justify="right", style="yellow", width=8)
+        table.add_column("Out Tok", justify="right", style="yellow", width=8)
+        table.add_column("Duration", justify="right", style="white", width=10)
         if verbose:
             table.add_column("Input", style="white", width=60)
             table.add_column("Output", style="white", width=60)
 
         for item in output:
+            status = item["status"]
+            status_str = f"[red]{status}[/red]" if status == "error" else escape(status)
             row_data = [
-                _truncate(item["kind"], 12),
-                _truncate(item["status"], 8),
-                _truncate(item["model"], 16),
-                _truncate(item["provider"], 12),
-                str(item["input_tokens"]),
-                str(item["output_tokens"]),
-                f"{item['duration']:.2f} ms",
+                escape(_truncate(item["name"], 26)),
+                escape(_truncate(item["kind"], 10)),
+                status_str,
+                escape(_truncate(item["model"], 18)),
+                str(item["input_tokens"]) if item["input_tokens"] else "",
+                str(item["output_tokens"]) if item["output_tokens"] else "",
+                f"{item['duration']:.0f}ms" if item["duration"] else "-",
             ]
             if verbose:
                 row_data.extend(
                     [
-                        _truncate(item["input"], 200),
-                        _truncate(item["output"], 200),
+                        escape(_truncate(item["input"], 200)),
+                        escape(_truncate(item["output"], 200)),
                     ]
                 )
             table.add_row(*row_data)

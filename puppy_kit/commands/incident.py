@@ -6,9 +6,11 @@ import re
 import warnings
 
 import click
+import requests
 from rich.console import Console
 from rich.table import Table
 from puppy_kit.client import get_datadog_client
+from puppy_kit.config import load_config
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.confirm import confirm_action
 from puppy_kit.utils.format import json_list_response
@@ -166,7 +168,10 @@ def list_incidents(
                 page_offset=page_offset,
             )
 
-            incidents = list(getattr(response, "included", []) or [])
+            response_data = getattr(response, "data", None)
+            response_attrs = getattr(response_data, "attributes", None)
+            search_results = list(getattr(response_attrs, "incidents", []) or [])
+            incidents = [getattr(result, "data", result) for result in search_results]
             if not incidents:
                 break
 
@@ -189,6 +194,8 @@ def list_incidents(
 
             pagination = getattr(getattr(response, "meta", None), "pagination", None)
             next_offset = getattr(pagination, "next_offset", None)
+            if next_offset is None:
+                next_offset = getattr(response_attrs, "next_offset", None)
             if next_offset is None:
                 break
 
@@ -392,11 +399,71 @@ def create_incident(title, severity, team, assignee, format):
     "--severity", default=None, type=click.Choice(SEVERITY_CHOICES), help="Incident severity"
 )
 @click.option("--assignee", default=None, help="Assignee name (e.g., muhammad, willem, jeong)")
+@click.option("--summary", default=None, help="Incident summary")
+@click.option("--root-cause", default=None, help="Root cause description")
+@click.option("--triage-findings", default=None, help="Triage findings")
+@click.option("--github-refs", default=None, help="GitHub references")
+@click.option("--datadog-refs", default=None, help="Datadog references")
+@click.option(
+    "--detection-method",
+    default=None,
+    type=click.Choice(["monitor", "employee", "customer", "alert", "unknown"]),
+    help="Detection method",
+)
+@click.option(
+    "--needs-monitoring",
+    default=None,
+    type=click.Choice(["yes", "no"]),
+    help="Needs monitoring flag",
+)
+@click.option(
+    "--needs-human-attention",
+    default=None,
+    type=click.Choice(["yes", "no"]),
+    help="Needs human attention flag",
+)
+@click.option(
+    "--triage-completed",
+    default=None,
+    type=click.Choice(["yes", "no"]),
+    help="Triage completed flag",
+)
+@click.option(
+    "--is-duplicate",
+    default=None,
+    type=click.Choice(["yes", "no"]),
+    help="Is duplicate flag",
+)
+@click.option("--teams", multiple=True, default=None, help="Team names (repeatable)")
+@click.option("--services", multiple=True, default=None, help="Service names (repeatable)")
+@click.option(
+    "--related-incidents", multiple=True, default=None, help="Related incident IDs (repeatable)"
+)
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def update_incident(incident_id, title, status, severity, assignee, format):
+def update_incident(
+    incident_id,
+    title,
+    status,
+    severity,
+    assignee,
+    summary,
+    root_cause,
+    triage_findings,
+    github_refs,
+    datadog_refs,
+    detection_method,
+    needs_monitoring,
+    needs_human_attention,
+    triage_completed,
+    is_duplicate,
+    teams,
+    services,
+    related_incidents,
+    format,
+):
     """Update an existing incident."""
     from datadog_api_client.v2.model.incident_update_request import IncidentUpdateRequest
     from datadog_api_client.v2.model.incident_update_data import IncidentUpdateData
@@ -406,9 +473,24 @@ def update_incident(incident_id, title, status, severity, assignee, format):
         IncidentFieldAttributesSingleValueType,
     )
 
-    if not any([title, status, severity, assignee]):
+    field_opts = [
+        summary,
+        root_cause,
+        triage_findings,
+        github_refs,
+        datadog_refs,
+        detection_method,
+        needs_monitoring,
+        needs_human_attention,
+        triage_completed,
+        is_duplicate,
+        teams,
+        services,
+        related_incidents,
+    ]
+    if not any([title, status, severity, assignee] + field_opts):
         raise click.UsageError(
-            "No update fields specified. Use --title, --status, --severity, or --assignee."
+            "No update fields specified. Use --title, --status, --severity, --assignee, or field options."
         )
 
     client = get_datadog_client()
@@ -444,6 +526,70 @@ def update_incident(incident_id, title, status, severity, assignee, format):
     inc = response.data
     attrs = inc.attributes
 
+    # Handle field updates via raw requests if any field options are provided
+    field_data = {}
+    if summary is not None:
+        field_data["summary"] = {"type": "textbox", "value": summary}
+    if root_cause is not None:
+        field_data["root_cause"] = {"type": "textbox", "value": root_cause}
+    if triage_findings is not None:
+        field_data["triagefindings"] = {"type": "textbox", "value": triage_findings}
+    if github_refs is not None:
+        field_data["githubreferences"] = {"type": "textbox", "value": github_refs}
+    if datadog_refs is not None:
+        field_data["datadogreferences"] = {"type": "textbox", "value": datadog_refs}
+    if detection_method is not None:
+        field_data["detection_method"] = {"type": "dropdown", "value": detection_method}
+    if needs_monitoring is not None:
+        field_data["needsmonitoring"] = {
+            "type": "dropdown",
+            "value": needs_monitoring.capitalize(),
+        }
+    if needs_human_attention is not None:
+        field_data["needshumanattention"] = {
+            "type": "dropdown",
+            "value": needs_human_attention.capitalize(),
+        }
+    if triage_completed is not None:
+        field_data["triagecompleted"] = {
+            "type": "dropdown",
+            "value": triage_completed.capitalize(),
+        }
+    if is_duplicate is not None:
+        field_data["isduplicate"] = {
+            "type": "dropdown",
+            "value": is_duplicate.capitalize(),
+        }
+    if teams:
+        field_data["teams"] = {"type": "autocomplete", "value": list(teams)}
+    if services:
+        field_data["services"] = {"type": "autocomplete", "value": list(services)}
+    if related_incidents:
+        field_data["relatedincidents"] = {"type": "textarray", "value": list(related_incidents)}
+
+    if field_data:
+        config = load_config()
+        base_url = f"https://{config.site}/api/v2/incidents"
+        headers = {
+            "DD-API-KEY": config.api_key,
+            "DD-APPLICATION-KEY": config.app_key,
+            "Content-Type": "application/json",
+        }
+        patch_body = {
+            "data": {
+                "type": "incidents",
+                "id": inc.id,
+                "attributes": {"fields": field_data},
+            }
+        }
+        try:
+            patch_resp = requests.patch(
+                f"{base_url}/{inc.id}", headers=headers, json=patch_body, timeout=30
+            )
+            patch_resp.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            console.print(f"[yellow]Warning: Field update failed: {e}[/yellow]")
+
     if format == "json":
         output = {
             "id": inc.id,
@@ -475,3 +621,415 @@ def delete_incident(incident_id, confirmed):
         client.incidents.delete_incident(incident_id=incident_id)
 
     console.print(f"[green]Incident {incident_id} deleted[/green]")
+
+
+@incident.group()
+def todo():
+    """Incident todo management."""
+    pass
+
+
+@todo.command(name="add")
+@click.argument("incident_id")
+@click.option("--content", required=True, help="Todo content")
+@click.option("--assignee", multiple=True, default=None, help="Assignee (e.g., @username)")
+@click.option("--due-date", default=None, help="Due date (ISO format)")
+@handle_api_error
+def add_todo(incident_id, content, assignee, due_date):
+    """Add a todo to an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    body = {
+        "data": {
+            "type": "incident_todos",
+            "attributes": {
+                "content": content,
+                "assignees": list(assignee) if assignee else [],
+                "due_date": due_date,
+            },
+        }
+    }
+
+    with console.status("[cyan]Creating todo...[/cyan]"):
+        resp = requests.post(
+            f"{base_url}/{uuid}/relationships/todos", headers=headers, json=body, timeout=30
+        )
+        resp.raise_for_status()
+        result = resp.json()
+
+    todo_id = result.get("data", {}).get("id", "unknown")
+    console.print(f"[green]Todo created: {todo_id} — {content}[/green]")
+
+
+@todo.command(name="list")
+@click.argument("incident_id")
+@handle_api_error
+def list_todos(incident_id):
+    """List todos for an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    with console.status("[cyan]Fetching todos...[/cyan]"):
+        resp = requests.get(f"{base_url}/{uuid}/relationships/todos", headers=headers, timeout=30)
+        resp.raise_for_status()
+        result = resp.json()
+
+    todos = result.get("data", [])
+
+    table = Table(title=f"Todos for {incident_id}")
+    table.add_column("ID", style="cyan", width=10)
+    table.add_column("Content", style="white")
+    table.add_column("Assignees", style="dim", width=20)
+    table.add_column("Due Date", style="dim", width=20)
+    table.add_column("Completed", style="dim", width=10)
+
+    for todo_item in todos:
+        attrs = todo_item.get("attributes", {})
+        todo_id = todo_item.get("id", "")[:8]
+        todo_content = attrs.get("content", "")
+        assignees = ", ".join(attrs.get("assignees", []))
+        due_date = attrs.get("due_date") or "N/A"
+        completed = "Yes" if attrs.get("completed") else "No"
+        table.add_row(todo_id, todo_content, assignees, due_date, completed)
+
+    console.print(table)
+
+
+@todo.command(name="complete")
+@click.argument("incident_id")
+@click.argument("todo_id")
+@handle_api_error
+def complete_todo(incident_id, todo_id):
+    """Mark a todo as complete."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    completed_at = datetime.utcnow().isoformat() + "Z"
+    body = {
+        "data": {
+            "type": "incident_todos",
+            "id": todo_id,
+            "attributes": {"completed": completed_at},
+        }
+    }
+
+    with console.status("[cyan]Marking todo complete...[/cyan]"):
+        resp = requests.patch(
+            f"{base_url}/{uuid}/relationships/todos/{todo_id}",
+            headers=headers,
+            json=body,
+            timeout=30,
+        )
+        resp.raise_for_status()
+
+    console.print(f"[green]Todo {todo_id} marked complete[/green]")
+
+
+@todo.command(name="delete")
+@click.argument("incident_id")
+@click.argument("todo_id")
+@handle_api_error
+def delete_todo(incident_id, todo_id):
+    """Delete a todo from an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    with console.status("[cyan]Deleting todo...[/cyan]"):
+        resp = requests.delete(
+            f"{base_url}/{uuid}/relationships/todos/{todo_id}", headers=headers, timeout=30
+        )
+        resp.raise_for_status()
+
+    console.print("[green]Todo deleted[/green]")
+
+
+@incident.group()
+def impact():
+    """Incident impact management."""
+    pass
+
+
+@impact.command(name="add")
+@click.argument("incident_id")
+@click.option("--description", required=True, help="Impact description")
+@click.option("--start", required=True, help="Start time (ISO format)")
+@click.option("--end", default=None, help="End time (ISO format)")
+@handle_api_error
+def add_impact(incident_id, description, start, end):
+    """Add an impact to an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    body = {
+        "data": {
+            "type": "incident_impacts",
+            "attributes": {
+                "description": description,
+                "start_at": start,
+                "end_at": end,
+            },
+        }
+    }
+
+    with console.status("[cyan]Creating impact...[/cyan]"):
+        resp = requests.post(f"{base_url}/{uuid}/impacts", headers=headers, json=body, timeout=30)
+        resp.raise_for_status()
+        result = resp.json()
+
+    impact_id = result.get("data", {}).get("id", "unknown")
+    console.print(f"[green]Impact created: {impact_id}[/green]")
+
+
+@impact.command(name="list")
+@click.argument("incident_id")
+@handle_api_error
+def list_impacts(incident_id):
+    """List impacts for an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    with console.status("[cyan]Fetching impacts...[/cyan]"):
+        resp = requests.get(f"{base_url}/{uuid}/impacts", headers=headers, timeout=30)
+        resp.raise_for_status()
+        result = resp.json()
+
+    impacts = result.get("data", [])
+
+    table = Table(title=f"Impacts for {incident_id}")
+    table.add_column("ID", style="cyan", width=10)
+    table.add_column("Description", style="white")
+    table.add_column("Start", style="dim", width=25)
+    table.add_column("End", style="dim", width=25)
+
+    for impact_item in impacts:
+        attrs = impact_item.get("attributes", {})
+        impact_id = impact_item.get("id", "")[:8]
+        description = attrs.get("description", "")
+        start = attrs.get("start_at", "N/A")
+        end = attrs.get("end_at") or "N/A"
+        table.add_row(impact_id, description, start, end)
+
+    console.print(table)
+
+
+@impact.command(name="delete")
+@click.argument("incident_id")
+@click.argument("impact_id")
+@handle_api_error
+def delete_impact(incident_id, impact_id):
+    """Delete an impact from an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    with console.status("[cyan]Deleting impact...[/cyan]"):
+        resp = requests.delete(
+            f"{base_url}/{uuid}/impacts/{impact_id}", headers=headers, timeout=30
+        )
+        resp.raise_for_status()
+
+    console.print("[green]Impact deleted[/green]")
+
+
+@incident.group()
+def attachment():
+    """Incident attachment management."""
+    pass
+
+
+@attachment.command(name="add")
+@click.argument("incident_id")
+@click.option("--url", required=True, help="Attachment URL")
+@click.option("--title", required=True, help="Attachment title")
+@click.option(
+    "--type", type=click.Choice(["link", "postmortem"]), default="link", help="Attachment type"
+)
+@handle_api_error
+def add_attachment(incident_id, url, title, type):
+    """Add an attachment to an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    body = {
+        "data": {
+            "type": "incident_attachments",
+            "attributes": {
+                "attachment_type": type,
+                "attachment": {
+                    "documentUrl": url,
+                    "title": title,
+                },
+            },
+        }
+    }
+
+    with console.status("[cyan]Creating attachment...[/cyan]"):
+        resp = requests.post(
+            f"{base_url}/{uuid}/attachments", headers=headers, json=body, timeout=30
+        )
+        resp.raise_for_status()
+        result = resp.json()
+
+    attachment_id = result.get("data", {}).get("id", "unknown")
+    console.print(f"[green]Attachment created: {attachment_id} — {title}[/green]")
+
+
+@attachment.command(name="list")
+@click.argument("incident_id")
+@handle_api_error
+def list_attachments(incident_id):
+    """List attachments for an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    with console.status("[cyan]Fetching attachments...[/cyan]"):
+        resp = requests.get(f"{base_url}/{uuid}/attachments", headers=headers, timeout=30)
+        resp.raise_for_status()
+        result = resp.json()
+
+    attachments = result.get("data", [])
+
+    table = Table(title=f"Attachments for {incident_id}")
+    table.add_column("ID", style="cyan", width=10)
+    table.add_column("Type", style="yellow", width=12)
+    table.add_column("Title", style="white")
+    table.add_column("URL", style="dim")
+
+    for att_item in attachments:
+        attrs = att_item.get("attributes", {})
+        att_id = att_item.get("id", "")[:8]
+        att_type = attrs.get("attachment_type", "")
+        attachment = attrs.get("attachment", {})
+        att_title = attachment.get("title", "")
+        att_url = attachment.get("documentUrl", "")
+        table.add_row(att_id, att_type, att_title, att_url)
+
+    console.print(table)
+
+
+@attachment.command(name="delete")
+@click.argument("incident_id")
+@click.argument("attachment_id")
+@handle_api_error
+def delete_attachment(incident_id, attachment_id):
+    """Delete an attachment from an incident."""
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Resolving incident {incident_id}...[/cyan]"):
+        response = client.incidents.get_incident(incident_id=incident_id)
+    uuid = response.data.id
+
+    config = load_config()
+    base_url = f"https://{config.site}/api/v2/incidents"
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+        "Content-Type": "application/json",
+    }
+
+    with console.status("[cyan]Deleting attachment...[/cyan]"):
+        resp = requests.delete(
+            f"{base_url}/{uuid}/attachments/{attachment_id}", headers=headers, timeout=30
+        )
+        resp.raise_for_status()
+
+    console.print("[green]Attachment deleted[/green]")
