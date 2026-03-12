@@ -132,7 +132,7 @@ def test_event_list_json_format(mock_client, runner):
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Parse JSON output
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
 
         # Verify structure
         assert "events" in output

@@ -54,7 +54,7 @@ def runner():
             result = runner.invoke(my_command, ['--option', 'value'])
             assert result.exit_code == 0
     """
-    return CliRunner()
+    return CliRunner(env={"COLUMNS": "200"})
 
 
 # Data factory functions for common test objects

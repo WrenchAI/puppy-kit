@@ -47,8 +47,8 @@ dev = [
 ]
 
 [project.scripts]
-puppy = "puppy_kit.cli:main"
-puppy-kit = "puppy_kit.cli:main"
+puppy = "puppy_kit.cli:run"
+puppy-kit = "puppy_kit.cli:run"
 
 [project.urls]
 Homepage = "https://github.com/WrenchAI/puppy-kit"

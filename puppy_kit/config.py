@@ -42,7 +42,7 @@ class DatadogConfig(BaseSettings):
         extra="ignore",
     )
 
-    ops_profile: Literal["triage", "full"] = "triage"
+    ops_profile: Literal["triage", "full", "active"] = "triage"
 
     @field_validator("site")
     @classmethod

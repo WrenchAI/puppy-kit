@@ -46,7 +46,7 @@ def test_rum_events_json(mock_client, runner):
         result = runner.invoke(rum, ["events", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["id"] == "evt-001"
         assert output[0]["type"] == "view"
@@ -166,7 +166,7 @@ def test_rum_analytics_json(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         assert output[0]["@type"] == "view"
         assert output[0]["count"] == 1500
@@ -204,7 +204,7 @@ def test_rum_analytics_p99(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["p99"] == 2500.0
 
@@ -240,7 +240,7 @@ def test_rum_analytics_avg(mock_client, runner):
         )
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 2
         assert output[0]["avg"] == 500.0
         assert output[1]["avg"] == 800.0
@@ -263,7 +263,7 @@ def test_rum_analytics_without_groupby(mock_client, runner):
         result = runner.invoke(rum, ["analytics", "--metric", "count", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["count"] == 12345
 

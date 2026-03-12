@@ -9,6 +9,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import truncate, json_list_response
 
 console = Console()
 
@@ -39,13 +40,16 @@ def _format_log_entry(log):
     }
 
 
-def _render_logs_table(logs_data, title="Logs"):
+def _render_logs_table(logs_data, title="Logs", verbose=False):
     """Render logs as a Rich table with color-coded status."""
     table = Table(title=title)
     table.add_column("Time", style="dim", width=20)
     table.add_column("Status", width=8)
     table.add_column("Service", style="cyan", width=20)
-    table.add_column("Message", style="white")
+    if verbose:
+        table.add_column("Message", style="white")
+    else:
+        table.add_column("Message", style="white", width=80)
 
     for log in logs_data:
         attrs = log.attributes
@@ -61,10 +65,15 @@ def _render_logs_table(logs_data, title="Logs"):
         message = getattr(attrs, "message", getattr(attrs, "log", "N/A"))
         service = getattr(attrs, "service", "N/A")
 
+        if not verbose:
+            message = truncate(str(message), 120)
+        else:
+            message = str(message)
+
         table.add_row(
             time_str,
             status_styled,
-            service,
+            truncate(str(service), 80),
             message,
         )
 
@@ -83,10 +92,11 @@ def logs():
 @click.option("--to", "to_time", default="now", help="End time")
 @click.option("--service", help="Filter by service name")
 @click.option("--status", help="Filter by log status (error, warn, info, debug)")
-@click.option("--limit", default=50, type=int, help="Max logs to return (max: 1000)")
+@click.option("--limit", default=50, type=int, help="Max logs to return [default: 50]")
 @click.option("--format", type=click.Choice(["json", "table"]), default="table")
+@click.option("--verbose", is_flag=True, default=False, help="Show full message text")
 @handle_api_error
-def search_logs(query, from_time, to_time, service, status, limit, format):
+def search_logs(query, from_time, to_time, service, status, limit, format, verbose):
     """Search logs with a query.
 
     Rate limit: 300 requests/hour for logs API.
@@ -124,9 +134,9 @@ def search_logs(query, from_time, to_time, service, status, limit, format):
 
     if format == "json":
         output = [_format_log_entry(log) for log in log_entries]
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
-        table = _render_logs_table(log_entries, title="Log Search Results")
+        table = _render_logs_table(log_entries, title="Log Search Results", verbose=verbose)
         console.print(table)
         console.print(f"\n[dim]Total logs: {len(log_entries)}[/dim]")
 
@@ -137,8 +147,9 @@ def search_logs(query, from_time, to_time, service, status, limit, format):
 @click.option("--service", help="Filter by service name")
 @click.option("--follow", is_flag=True, default=False, help="Stream new logs continuously")
 @click.option("--format", type=click.Choice(["json", "table"]), default="table")
+@click.option("--verbose", is_flag=True, default=False, help="Show full message text")
 @handle_api_error
-def tail_logs(query, lines, service, follow, format):
+def tail_logs(query, lines, service, follow, format, verbose):
     """Tail recent logs (last 15 minutes).
 
     Shows the most recent log entries matching your query.
@@ -196,7 +207,7 @@ def tail_logs(query, lines, service, follow, format):
                 if new_logs:
                     if format == "json":
                         for log in new_logs:
-                            print(json.dumps(_format_log_entry(log)))
+                            click.echo(json.dumps(json_list_response([_format_log_entry(log)])))
                     else:
                         for log in new_logs:
                             attrs = log.attributes
@@ -211,7 +222,10 @@ def tail_logs(query, lines, service, follow, format):
                             service = getattr(attrs, "service", "N/A")
                             message = getattr(attrs, "message", getattr(attrs, "log", "N/A"))
                             safe_service = str(service).replace("[", "\\[")
-                            safe_message = str(message).replace("[", "\\[")
+                            if not verbose:
+                                safe_message = truncate(str(message), 120).replace("[", "\\[")
+                            else:
+                                safe_message = str(message).replace("[", "\\[")
                             console.print(
                                 f"[dim]{time_str}[/dim] "
                                 f"[{color}]{status}[/{color}] "
@@ -232,9 +246,9 @@ def tail_logs(query, lines, service, follow, format):
 
         if format == "json":
             output = [_format_log_entry(log) for log in log_entries]
-            print(json.dumps(output, indent=2))
+            click.echo(json.dumps(json_list_response(output)))
         else:
-            table = _render_logs_table(log_entries, title="Recent Logs (last 15m)")
+            table = _render_logs_table(log_entries, title="Recent Logs (last 15m)", verbose=verbose)
             console.print(table)
             console.print(f"\n[dim]Total logs: {len(log_entries)}[/dim]")
 
@@ -295,7 +309,7 @@ def query_logs(query, from_time, to_time, group_by, metric, format):
                 value = list(bucket.computes.values())[0]
                 result[metric] = value
             output.append(result)
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         title = f"Log Analytics ({metric})"
         if group_by:
@@ -355,8 +369,8 @@ def trace_logs(trace_id, format):
 
     if format == "json":
         output = [_format_log_entry(log) for log in log_entries]
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
-        table = _render_logs_table(log_entries, title=f"Logs for trace {trace_id}")
+        table = _render_logs_table(log_entries, title=f"Logs for trace {trace_id}", verbose=False)
         console.print(table)
         console.print(f"\n[dim]Total logs: {len(log_entries)}[/dim]")

@@ -11,6 +11,7 @@ from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
 from puppy_kit.utils.confirm import confirm_action
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -60,11 +61,12 @@ def downtime():
 
 @downtime.command(name="list")
 @click.option("--current-only", is_flag=True, help="Show only currently active downtimes")
+@click.option("--limit", default=100, type=int, help="Max downtimes to return [default: 100]")
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def list_downtimes(current_only, format):
+def list_downtimes(current_only, limit, format):
     """List all downtimes."""
     client = get_datadog_client()
 
@@ -75,8 +77,10 @@ def list_downtimes(current_only, format):
     with console.status("[cyan]Fetching downtimes...[/cyan]"):
         downtimes = client.downtimes.list_downtimes(**kwargs)
 
+    downtimes = downtimes[:limit]
+
     if format == "json":
-        print(json.dumps([d.to_dict() for d in downtimes], indent=2, default=str))
+        click.echo(json.dumps(json_list_response([d.to_dict() for d in downtimes])))
     else:
         table = Table(title="Downtimes")
         table.add_column("ID", style="cyan", width=10)
@@ -122,7 +126,7 @@ def get_downtime(downtime_id, format):
         dt = client.downtimes.get_downtime(downtime_id)
 
     if format == "json":
-        print(json.dumps(dt.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(dt.to_dict())))
     else:
         console.print(f"\n[bold cyan]Downtime #{dt.id}[/bold cyan]")
         scope_str = ", ".join(dt.scope) if dt.scope else "N/A"
@@ -198,7 +202,7 @@ def create_downtime_cmd(scope, start_time, end_time, message, monitor_id, file_d
         result = client.downtimes.create_downtime(body=downtime_body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]Downtime {result.id} created[/green]")
         scope_str = ", ".join(result.scope) if result.scope else "N/A"
@@ -242,7 +246,7 @@ def update_downtime_cmd(downtime_id, scope, end_time, message, fmt):
         result = client.downtimes.update_downtime(downtime_id, body=update_body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]Downtime {downtime_id} updated[/green]")
 
@@ -294,7 +298,7 @@ def cancel_by_scope_cmd(scope, confirmed, fmt):
         result = client.downtimes.cancel_downtimes_by_scope(body=body)
 
     if fmt == "json":
-        print(json.dumps({"cancelled_ids": result.cancelled_ids}, indent=2, default=str))
+        click.echo(json.dumps(json_list_response({"cancelled_ids": result.cancelled_ids})))
     else:
         count = len(result.cancelled_ids) if result.cancelled_ids else 0
         console.print(f"[green]{count} downtime(s) cancelled for scope '{scope}'[/green]")

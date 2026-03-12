@@ -5,9 +5,11 @@ import json
 from datetime import datetime, timedelta, timezone
 from rich.console import Console
 from rich.table import Table
+from rich.markup import escape
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -23,10 +25,19 @@ def metric():
 @click.option("--from", "from_time", default="1h", help="Start time (e.g., 1h, 24h, 7d)")
 @click.option("--to", "to_time", default="now", help="End time")
 @click.option(
+    "--limit", default=100, type=int, help="Max points to show in verbose mode [default: 100]"
+)
+@click.option(
     "--format", type=click.Choice(["json", "table", "csv"]), default="table", help="Output format"
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Show individual data points instead of summary statistics",
+)
 @handle_api_error
-def query_metric(query, from_time, to_time, format):
+def query_metric(query, from_time, to_time, limit, format, verbose):
     """Query metrics."""
     client = get_datadog_client()
 
@@ -36,7 +47,11 @@ def query_metric(query, from_time, to_time, format):
         result = client.metrics.query_metrics(_from=from_ts, to=to_ts, query=query)
 
     if format == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        output_list = []
+        if result.series:
+            for series in result.series:
+                output_list.append(series)
+        click.echo(json.dumps(json_list_response(output_list)))
     elif format == "csv":
         # CSV output for scripting
         if result.series:
@@ -51,22 +66,98 @@ def query_metric(query, from_time, to_time, format):
             console.print("[yellow]No data found for query[/yellow]")
             return
 
-        for series in result.series:
-            table = Table(title=f"Metric: {series.get('metric', 'unknown')}")
-            table.add_column("Timestamp", style="cyan")
-            table.add_column("Value", style="green", justify="right")
+        if verbose:
+            # Verbose mode: show individual data points
+            for series in result.series:
+                metric_name = escape(series.get("metric", "unknown"))
+                table = Table(title=f"Metric: {metric_name}")
+                table.add_column("Timestamp", style="cyan")
+                table.add_column("Value", style="green", justify="right")
 
-            # Show last 20 points
-            points = series.get("pointlist", [])[-20:]
-            for point in points:
-                timestamp, value = point.value
-                from datetime import datetime
+                all_points = series.get("pointlist", [])
+                points = all_points[-limit:]
 
-                dt = datetime.fromtimestamp(timestamp / 1000)
-                table.add_row(dt.strftime("%Y-%m-%d %H:%M:%S"), f"{value:.2f}")
+                for point in points:
+                    timestamp, value = point.value
+                    dt = datetime.fromtimestamp(timestamp / 1000)
+                    table.add_row(dt.strftime("%Y-%m-%d %H:%M:%S"), f"{value:.2f}")
+
+                console.print(table)
+                console.print(f"[dim]Total points: {len(all_points)}[/dim]\n")
+        else:
+            # Summary mode: one row per series with aggregate stats
+            table = Table(title="Metric Summary")
+            table.add_column("Metric", style="cyan")
+            table.add_column("Points", style="yellow", justify="right")
+            table.add_column("Min", style="green", justify="right")
+            table.add_column("Max", style="green", justify="right")
+            table.add_column("Avg", style="green", justify="right")
+            table.add_column("Latest", style="magenta", justify="right")
+            table.add_column("Trend", style="blue", justify="center")
+
+            for series in result.series:
+                metric_name = series.get("metric", "unknown")
+                all_points = series.get("pointlist", [])
+
+                if not all_points:
+                    # Empty pointlist
+                    table.add_row(metric_name, "0", "—", "—", "—", "—", "—")
+                    continue
+
+                # Extract values, filtering out None
+                values = []
+                for point in all_points:
+                    try:
+                        _, value = point.value
+                        if value is not None:
+                            values.append(value)
+                    except (ValueError, TypeError, AttributeError):
+                        pass
+
+                if not values:
+                    # No valid values
+                    table.add_row(metric_name, str(len(all_points)), "—", "—", "—", "—", "—")
+                    continue
+
+                # Compute statistics
+                min_val = min(values)
+                max_val = max(values)
+                avg_val = sum(values) / len(values)
+                latest_val = values[-1]
+
+                # Compute trend (first half avg vs second half avg)
+                mid = len(values) // 2
+                if mid > 0:
+                    first_half = values[:mid]
+                    second_half = values[mid:]
+                    first_avg = sum(first_half) / len(first_half)
+                    second_avg = sum(second_half) / len(second_half)
+
+                    if first_avg > 0:
+                        pct_change = (second_avg - first_avg) / first_avg
+                        if pct_change > 0.05:
+                            trend = "↑"
+                        elif pct_change < -0.05:
+                            trend = "↓"
+                        else:
+                            trend = "→"
+                    else:
+                        trend = "→"
+                else:
+                    trend = "→"
+
+                # Format for display
+                points_count = len(all_points)
+                min_str = f"{min_val:.2f}"
+                max_str = f"{max_val:.2f}"
+                avg_str = f"{avg_val:.2f}"
+                latest_str = f"{latest_val:.2f}"
+
+                table.add_row(
+                    metric_name, str(points_count), min_str, max_str, avg_str, latest_str, trend
+                )
 
             console.print(table)
-            console.print(f"[dim]Total points: {len(series.get('pointlist', []))}[/dim]\n")
 
 
 @metric.command(name="search")

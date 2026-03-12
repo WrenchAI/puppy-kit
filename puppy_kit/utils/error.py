@@ -21,7 +21,7 @@ console = Console()
 
 
 def handle_api_error(func):
-    """Decorator for API error handling with retry logic."""
+    """Decorator for API error handling with retry logic and LLM-friendly messages."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -36,24 +36,24 @@ def handle_api_error(func):
                     emit_error(
                         "AUTH_FAILED",
                         401,
-                        "Authentication failed",
-                        "Check DD_API_KEY and DD_APP_KEY or run puppy config init",
+                        "Authentication failed. Verify DD_API_KEY and DD_APP_KEY are set correctly.",
+                        "Run: puppy config test",
                     )
                     sys.exit(AUTH_ERROR)
                 elif e.status == 403:
                     emit_error(
                         "PERMISSION_DENIED",
                         403,
-                        "Permission denied",
-                        "Check API key permissions",
+                        "Permission denied. Your API key lacks required permissions.",
+                        "Check your Datadog API key permissions or run: puppy config test",
                     )
                     sys.exit(AUTH_ERROR)
                 elif e.status == 404:
                     emit_error(
                         "NOT_FOUND",
                         404,
-                        f"Resource not found: {e}",
-                        "Verify the resource ID",
+                        "Resource not found. The requested ID or resource does not exist.",
+                        "Use 'puppy <command> list' to find valid IDs.",
                     )
                     sys.exit(NOT_FOUND)
                 elif e.status == 429:
@@ -69,8 +69,8 @@ def handle_api_error(func):
                         emit_error(
                             "RATE_LIMITED",
                             429,
-                            f"Rate limited after {retries} retries. Suggested wait: {suggested_wait:.0f}+ seconds.",
-                            "Try again later or reduce request frequency",
+                            f"Rate limited by Datadog API after {retries} retries. Suggested wait: {suggested_wait:.0f}+ seconds.",
+                            "Try reducing --limit, remove filters, or retry later.",
                         )
                         sys.exit(RATE_LIMITED)
                 elif e.status >= 500:
@@ -85,15 +85,16 @@ def handle_api_error(func):
                         emit_error(
                             "SERVER_ERROR",
                             e.status,
-                            f"Server error: {e}",
-                            "Datadog service issue, try again later",
+                            "Datadog API server error. The service may be experiencing issues.",
+                            "Check https://status.datadoghq.com for incidents. Try again later.",
                         )
                         sys.exit(SERVER_ERROR)
                 elif e.status in (400, 422):
                     emit_error(
                         "VALIDATION_ERROR",
                         e.status,
-                        f"Validation error ({e.status}): {e}",
+                        f"Validation error ({e.status}). Your request was malformed.",
+                        f"Check your query syntax, time ranges, and parameters. Details: {e}",
                     )
                     sys.exit(VALIDATION_ERROR)
                 else:

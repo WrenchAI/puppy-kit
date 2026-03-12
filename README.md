@@ -1,21 +1,21 @@
 # puppy-kit
 
-**Datadog CLI + MCP server for AI-driven incident management.**
+**Datadog CLI for AI-driven incident management.**
 
-A modern CLI for the Datadog API with 22 command groups, 100+ subcommands, Rich terminal output, retry logic, and an optional MCP server that lets AI agents (Claude Code, Codex) detect, triage, and resolve incidents autonomously.
+A modern CLI for the Datadog API with 18 command groups, Rich terminal output, retry logic, and an optional MCP server that lets AI agents detect, triage, and resolve incidents autonomously.
 
 Forked from [ddogctl](https://github.com/srgfrancisco/ddogctl) by Sergio Francisco (MIT License).
 
 ## Features
 
-- 22 command groups covering monitors, incidents, logs, APM, dashboards, SLOs, and more
+- 18 command groups covering monitors, incidents, logs, APM, dashboards, and more
 - Rich terminal output with tables, colors, and progress indicators
-- Investigation workflows that correlate across monitors, traces, logs, and hosts
 - Optional MCP server exposing Datadog operations as tools for AI agents
 - Retry logic with exponential backoff on rate limits and server errors
-- Multi-profile configuration with region shortcuts
-- Per-profile ops mode: `triage` (safe default) or `full` (all operations unlocked)
-- Watch mode, stdin piping, JSON export, and shell completions
+- Region shortcuts (us, eu, us3, us5, ap1, gov)
+- Watch mode, stdin piping, and JSON export
+- `--verbose` flag for full output on logs, APM, and LLM commands
+- Structured JSON envelope with `--format json`: `{data, count, hint}`
 
 ## Installation
 
@@ -71,55 +71,15 @@ puppy config init
 
 This command prompts you interactively for your `DD_API_KEY`, `DD_APP_KEY`, and optional `DD_SITE`, then creates `~/.puppy-kit/config.json` with your credentials.
 
-### Multi-Profile
+### Validate Configuration
+
+Test your setup:
 
 ```bash
-puppy config set-profile staging --api-key xxx --app-key yyy --site eu
-puppy config use-profile staging
-puppy config list-profiles
+puppy config test
 ```
 
-Select a profile per-command with `--profile`:
-
-```bash
-puppy --profile production monitor list
-```
-
-Or via environment variable:
-
-```bash
-export PUPPY_KIT_PROFILE=production
-```
-
-### Ops Profile
-
-Each profile has an `ops_profile` setting that controls which Datadog API operations are available:
-
-| Profile | What's enabled |
-|---------|---------------|
-| `triage` (default) | Incident management (full CRUD), case linking, read-only triage ops (findings, scorecard, SLO reports, flaky tests, LLM observability, security signals, etc.) |
-| `full` | Everything in `triage` plus infrastructure setup ops: fleet management, deployment gates, API catalog, Jira/ServiceNow integration config, restriction policies, data deletion, SCA rules, and more |
-
-Set it during `puppy config init` (prompted automatically), or explicitly:
-
-```bash
-# Set on an existing profile
-puppy config set-profile --ops-profile full
-
-# Or in ~/.puppy-kit/config.json
-{
-  "profiles": {
-    "Wrench": {
-      "api_key": "...",
-      "app_key": "...",
-      "site": "us5.datadoghq.com",
-      "ops_profile": "triage"
-    }
-  }
-}
-```
-
-Use `triage` for AI agents and automated tooling. Use `full` only when you need to manage Datadog infrastructure directly.
+This verifies that your credentials are valid and connected to Datadog.
 
 ### Region Shortcuts
 
@@ -159,10 +119,12 @@ puppy incident update abc123 --status resolved
 # Logs
 puppy logs search "status:error" --service my-api --from 30m
 puppy logs tail "env:prod"
+puppy logs search "status:error" --verbose  # Full output
 
 # APM
 puppy apm services
 puppy apm traces my-service --from 1h
+puppy apm services --verbose  # Full output
 
 # Metrics
 puppy metric query "avg:system.cpu.user{env:prod}" --from 1h
@@ -171,13 +133,11 @@ puppy metric query "avg:system.cpu.user{env:prod}" --from 1h
 puppy dashboard list
 puppy dashboard get abc-def-123
 
-# Investigation Workflows
-puppy investigate latency my-service --threshold 500
-puppy investigate errors my-service --from 1h
-puppy investigate compare my-service --from 1h --baseline 24h
-
 # Watch mode (auto-refresh)
 puppy monitor list --state Alert --watch 10
+
+# JSON export
+puppy monitor list --format json
 ```
 
 ## Commands
@@ -192,24 +152,19 @@ puppy monitor list --state Alert --watch 10
 | `event` | list, get, post |
 | `host` | list, get, totals |
 | `dashboard` / `dash` | list, get, create, update, delete, export, clone |
-| `slo` | list, get, create, update, delete, history, export |
 | `downtime` / `dt` | list, get, create, update, delete, cancel-by-scope |
-| `investigate` / `inv` | latency, errors, throughput, compare |
 | `dbm` | hosts, queries, explain, samples |
-| `synthetics` | list, get, results, trigger |
 | `tag` | list, add, replace, detach |
 | `service-check` / `sc` | post |
-| `notebook` | list, get, create, delete |
 | `user` | list, get, invite, disable |
 | `usage` | summary, hosts, logs, top-avg-metrics |
 | `rum` | events, analytics |
 | `ci` | pipelines, tests, pipeline-details |
-| `config` | init, set-profile, use-profile, list-profiles, get |
-| `apply` | Apply Datadog resources from JSON files |
-| `diff` | Compare local JSON against live Datadog state |
-| `completion` | bash, zsh, fish |
+| `cost` | estimates, line-items, latest |
+| `llm` | cost, usage, latency |
+| `config` | init, get, test |
 
-All commands support `--format json` for machine-readable output.
+All commands support `--format json` for structured output with `{data, count, hint}` envelope.
 
 ## MCP Server
 
@@ -248,8 +203,6 @@ pip install puppy-kit[mcp]
 | `dd_dashboards_list` | List dashboards |
 | `dd_dashboards_get` | Get dashboard details |
 | `dd_hosts_list` | List hosts |
-| `dd_slos_list` | List SLOs |
-| `dd_slos_get` | Get SLO details |
 
 ### Claude Code Integration
 

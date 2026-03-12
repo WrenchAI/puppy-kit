@@ -7,6 +7,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -23,11 +24,12 @@ def event():
 @click.option("--sources", help="Event sources (comma-separated, e.g., alert,deploy)")
 @click.option("--priority", type=click.Choice(["normal", "low"]), help="Event priority")
 @click.option("--tags", help="Filter by tags (comma-separated)")
+@click.option("--limit", default=100, type=int, help="Max events to return [default: 100]")
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def list_events(from_time, to_time, sources, priority, tags, format):
+def list_events(from_time, to_time, sources, priority, tags, limit, format):
     """List events."""
     client = get_datadog_client()
 
@@ -48,6 +50,9 @@ def list_events(from_time, to_time, sources, priority, tags, format):
     if not result.events:
         console.print("[yellow]No events found[/yellow]")
         return
+
+    # Apply limit client-side
+    result.events = result.events[:limit]
 
     if format == "table":
         table = Table(title=f"Events (last {from_time})", show_lines=False)
@@ -72,7 +77,7 @@ def list_events(from_time, to_time, sources, priority, tags, format):
         console.print(f"\n[dim]Total events: {len(result.events)}[/dim]")
 
     elif format == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
 
 
 @event.command(name="get")

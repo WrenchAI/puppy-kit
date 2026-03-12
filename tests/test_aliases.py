@@ -27,18 +27,6 @@ class TestAliasResolution:
         assert result.exit_code == 0
         assert "downtime" in result.output.lower() or "Downtime" in result.output
 
-    def test_sc_resolves_to_service_check(self):
-        runner = CliRunner()
-        result = runner.invoke(main, ["sc", "--help"])
-        assert result.exit_code == 0
-        assert "service" in result.output.lower() or "Service" in result.output
-
-    def test_inv_resolves_to_investigate(self):
-        runner = CliRunner()
-        result = runner.invoke(main, ["inv", "--help"])
-        assert result.exit_code == 0
-        assert "investigate" in result.output.lower() or "Investigate" in result.output
-
 
 class TestAliasSubcommands:
     """Tests that aliases work with subcommands."""
@@ -53,13 +41,6 @@ class TestAliasSubcommands:
             mock_get.return_value = mock_client
             result = runner.invoke(main, ["mon", "list"])
             assert result.exit_code == 0
-
-    def test_inv_with_subcommand(self):
-        """inv should accept investigate subcommands."""
-        runner = CliRunner()
-        # Just verify the alias resolves and the subcommand help is accessible
-        result = runner.invoke(main, ["inv", "latency", "--help"])
-        assert result.exit_code == 0
 
 
 class TestFullCommandsStillWork:
@@ -83,11 +64,6 @@ class TestFullCommandsStillWork:
     def test_service_check_still_works(self):
         runner = CliRunner()
         result = runner.invoke(main, ["service-check", "--help"])
-        assert result.exit_code == 0
-
-    def test_investigate_still_works(self):
-        runner = CliRunner()
-        result = runner.invoke(main, ["investigate", "--help"])
         assert result.exit_code == 0
 
 

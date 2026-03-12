@@ -73,7 +73,7 @@ def test_monitor_list_state_filter(mock_client, runner):
         # Parse JSON output
         import json
 
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
 
         # Should only return Alert monitors (IDs 1 and 4)
         assert len(output) == 2, f"Expected 2 Alert monitors, got {len(output)}"
@@ -86,7 +86,7 @@ def test_monitor_list_state_filter(mock_client, runner):
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
 
         # Should return Alert and Warn monitors (IDs 1, 2, 4)
         assert len(output) == 3, f"Expected 3 Alert/Warn monitors, got {len(output)}"
@@ -113,7 +113,7 @@ def test_monitor_list_no_state_filter(mock_client, runner):
 
         import json
 
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
 
         # Should return all monitors
         assert len(output) == 2
@@ -179,7 +179,7 @@ def test_monitor_list_json_format(mock_client, runner):
 
         import json
 
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
 
         assert len(output) == 1
         assert output[0]["id"] == 1
@@ -227,7 +227,7 @@ def test_monitor_get_json_format(mock_client, runner):
 
         import json
 
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
 
         assert output["id"] == 456
         assert output["name"] == "Memory Monitor"
@@ -416,14 +416,14 @@ def test_monitor_workflow_list_get(mock_client, runner):
 
         import json
 
-        monitors_list = json.loads(result.output)
+        monitors_list = json.loads(result.output)["data"]
         assert len(monitors_list) == 2
 
         # Then get details of the first one
         result = runner.invoke(monitor, ["get", "1", "--format", "json"])
         assert result.exit_code == 0
 
-        monitor_details = json.loads(result.output)
+        monitor_details = json.loads(result.output)["data"]
         assert monitor_details["id"] == 1
         assert monitor_details["name"] == "Monitor A"
 
@@ -623,7 +623,7 @@ def test_monitor_create_json_output(mock_client, runner):
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == 104
         assert output["name"] == "JSON Test"
 
@@ -714,47 +714,13 @@ def test_monitor_update_json_output(mock_client, runner):
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert output["id"] == 203
 
 
 # ============================================================================
 # Monitor Delete Command Tests
 # ============================================================================
-
-
-def test_monitor_delete_with_confirm_flag(mock_client, runner):
-    """Test deleting a monitor with --confirm flag (no prompt)."""
-    mock_client.monitors.delete_monitor.return_value = Mock()
-
-    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "300", "--confirm"])
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Monitor 300 deleted" in result.output
-        mock_client.monitors.delete_monitor.assert_called_once_with(300)
-
-
-def test_monitor_delete_interactive_confirm_yes(mock_client, runner):
-    """Test deleting a monitor with interactive confirmation (user says yes)."""
-    mock_client.monitors.delete_monitor.return_value = Mock()
-
-    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "301"], input="y\n")
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Monitor 301 deleted" in result.output
-        mock_client.monitors.delete_monitor.assert_called_once_with(301)
-
-
-def test_monitor_delete_interactive_confirm_no(mock_client, runner):
-    """Test deleting a monitor with interactive confirmation (user says no)."""
-    with patch("puppy_kit.commands.monitor.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(monitor, ["delete", "302"], input="n\n")
-
-        assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Aborted" in result.output
-        mock_client.monitors.delete_monitor.assert_not_called()
 
 
 # ============================================================================

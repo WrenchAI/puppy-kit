@@ -21,7 +21,7 @@ class TestConfigInit:
             result = runner.invoke(
                 config,
                 ["init"],
-                input="my-api-key\nmy-app-key\nus\ndefault\n",
+                input="my-api-key\nmy-app-key\nus\ntriage\ndefault\n",
             )
 
         assert result.exit_code == 0
@@ -32,6 +32,7 @@ class TestConfigInit:
         assert data["profiles"]["default"]["api_key"] == "my-api-key"
         assert data["profiles"]["default"]["app_key"] == "my-app-key"
         assert data["profiles"]["default"]["site"] == "datadoghq.com"
+        assert data["profiles"]["default"]["ops_profile"] == "triage"
 
     def test_init_expands_region_shortcuts(self, runner, tmp_path):
         """Test that init expands region shortcuts like 'eu' to full domain."""
@@ -45,12 +46,13 @@ class TestConfigInit:
             result = runner.invoke(
                 config,
                 ["init"],
-                input="key1\nkey2\neu\nprod\n",
+                input="key1\nkey2\neu\ntriage\nprod\n",
             )
 
         assert result.exit_code == 0
         data = json.loads(config_file.read_text())
         assert data["profiles"]["prod"]["site"] == "datadoghq.eu"
+        assert data["profiles"]["prod"]["ops_profile"] == "triage"
 
     def test_init_preserves_existing_profiles(self, runner, tmp_path):
         """Test that init adds to existing config without overwriting."""
@@ -77,7 +79,7 @@ class TestConfigInit:
             result = runner.invoke(
                 config,
                 ["init"],
-                input="staging-key\nstaging-app\neu\nstaging\n",
+                input="staging-key\nstaging-app\neu\nfull\nstaging\n",
             )
 
         assert result.exit_code == 0
@@ -88,6 +90,7 @@ class TestConfigInit:
         # New profile added
         assert "staging" in data["profiles"]
         assert data["profiles"]["staging"]["api_key"] == "staging-key"
+        assert data["profiles"]["staging"]["ops_profile"] == "full"
 
     def test_init_displays_success_message(self, runner, tmp_path):
         """Test that init shows a success message."""
@@ -101,7 +104,7 @@ class TestConfigInit:
             result = runner.invoke(
                 config,
                 ["init"],
-                input="key1\nkey2\nus\nmyprofile\n",
+                input="key1\nkey2\nus\nactive\nmyprofile\n",
             )
 
         assert result.exit_code == 0

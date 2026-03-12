@@ -7,6 +7,7 @@ from rich.table import Table
 from datadog_api_client.v1.model.host_tags import HostTags
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -39,7 +40,7 @@ def list_tags(host, source, fmt):
 
     if fmt == "json":
         output = {"host": host, "tags": tags}
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         if not tags:
             console.print(f"[dim]No tags found for {host}[/dim]")
@@ -111,26 +112,3 @@ def replace_tags(host, tags, source):
     console.print(f"[green]Replaced tags on {host} ({len(result_tags)} tag(s))[/green]")
     for t in result_tags:
         console.print(f"  [cyan]{t}[/cyan]")
-
-
-@tag.command(name="detach")
-@click.argument("host")
-@click.option("--source", help="Tag source to detach (e.g., users, chef, puppet)")
-@handle_api_error
-def detach_tags(host, source):
-    """Detach (remove) all tags from a host.
-
-    Removes all tags for a single host. If no source is specified,
-    only deletes from the source "users".
-    """
-    client = get_datadog_client()
-
-    kwargs = {"host_name": host}
-    if source:
-        kwargs["source"] = source
-
-    with console.status(f"[cyan]Detaching tags from {host}...[/cyan]"):
-        client.tags.delete_host_tags(**kwargs)
-
-    source_msg = f" (source: {source})" if source else ""
-    console.print(f"[green]Detached all tags from {host}{source_msg}[/green]")

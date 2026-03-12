@@ -9,9 +9,9 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.file_input import load_json_option
-from puppy_kit.utils.confirm import confirm_action
 from puppy_kit.utils.stdin import read_stdin_json, stdin_option
 from puppy_kit.utils.watch import watch_loop
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -70,6 +70,7 @@ def _build_monitor_table(monitors):
     multiple=True,
     help="Filter by state",
 )
+@click.option("--limit", type=int, default=None, help="Max monitors to return")
 @click.option(
     "--format",
     type=click.Choice(["json", "table", "markdown"]),
@@ -79,7 +80,7 @@ def _build_monitor_table(monitors):
 @click.option("--watch", is_flag=True, default=False, help="Auto-refresh at intervals")
 @click.option("--interval", type=int, default=30, help="Refresh interval in seconds (default: 30)")
 @handle_api_error
-def list_monitors(tags, state, format, watch, interval):
+def list_monitors(tags, state, limit, format, watch, interval):
     """List all monitors (equivalent to dogshell's show_all)."""
     client = get_datadog_client()
 
@@ -89,6 +90,8 @@ def list_monitors(tags, state, format, watch, interval):
         if tags:
             kwargs["tags"] = tags
         monitors = client.monitors.list_monitors(**kwargs)
+        if limit:
+            monitors = monitors[:limit]
         if state:
             monitors = [m for m in monitors if str(m.overall_state) in state]
         return monitors
@@ -117,7 +120,7 @@ def list_monitors(tags, state, format, watch, interval):
             console.print(f"\n[dim]Total monitors: {len(monitors)}[/dim]")
 
         elif format == "json":
-            print(json.dumps([m.to_dict() for m in monitors], indent=2, default=str))
+            click.echo(json.dumps(json_list_response([m.to_dict() for m in monitors])))
 
         elif format == "markdown":
             print("| ID | State | Name |")
@@ -169,7 +172,7 @@ def get_monitor(monitor_id, format):
             console.print(f"[bold]Modified:[/bold] {mon.modified}")
 
     elif format == "json":
-        print(json.dumps(mon.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(mon.to_dict())))
 
 
 @monitor.command(name="mute")
@@ -351,7 +354,7 @@ def create_monitor_cmd(
         result = client.monitors.create_monitor(body=monitor_body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]✓ Monitor {result.id} created[/green]")
         console.print(f"[bold]Name:[/bold] {result.name}")
@@ -422,28 +425,10 @@ def update_monitor_cmd(
         result = client.monitors.update_monitor(monitor_id, body=update_body)
 
     if fmt == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response(result.to_dict())))
     else:
         console.print(f"[green]✓ Monitor {monitor_id} updated[/green]")
         console.print(f"[bold]Name:[/bold] {result.name}")
-
-
-@monitor.command(name="delete")
-@click.argument("monitor_id", type=int)
-@click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")
-@handle_api_error
-def delete_monitor_cmd(monitor_id, confirmed):
-    """Delete a monitor by ID."""
-    if not confirm_action(f"Delete monitor {monitor_id}?", confirmed):
-        console.print("[yellow]Aborted[/yellow]")
-        return
-
-    client = get_datadog_client()
-
-    with console.status(f"[cyan]Deleting monitor {monitor_id}...[/cyan]"):
-        client.monitors.delete_monitor(monitor_id)
-
-    console.print(f"[green]✓ Monitor {monitor_id} deleted[/green]")
 
 
 @monitor.command(name="mute-all")

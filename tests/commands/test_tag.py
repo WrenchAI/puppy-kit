@@ -36,7 +36,7 @@ def test_tag_list_json_format(mock_client, runner):
         result = runner.invoke(tag, ["list", "web-prod-01", "--format", "json"])
 
     assert result.exit_code == 0
-    output = json.loads(result.output)
+    output = json.loads(result.output).get("data", [])
     assert output["host"] == "web-prod-01"
     assert "env:prod" in output["tags"]
     assert "service:web" in output["tags"]
@@ -235,35 +235,6 @@ def test_tag_replace_with_source(mock_client, runner):
     assert result.exit_code == 0
     call_kwargs = mock_client.tags.update_host_tags.call_args
     assert call_kwargs.kwargs["source"] == "puppet"
-
-
-def test_tag_detach(mock_client, runner):
-    """Test detaching (removing) all tags from a host."""
-    from puppy_kit.commands.tag import tag
-
-    mock_client.tags.delete_host_tags.return_value = None
-
-    with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["detach", "web-prod-01"])
-
-    assert result.exit_code == 0
-    assert "Detached" in result.output or "detached" in result.output or "Removed" in result.output
-    mock_client.tags.delete_host_tags.assert_called_once_with(host_name="web-prod-01")
-
-
-def test_tag_detach_with_source(mock_client, runner):
-    """Test detaching tags with a specific source."""
-    from puppy_kit.commands.tag import tag
-
-    mock_client.tags.delete_host_tags.return_value = None
-
-    with patch("puppy_kit.commands.tag.get_datadog_client", return_value=mock_client):
-        result = runner.invoke(tag, ["detach", "web-prod-01", "--source", "users"])
-
-    assert result.exit_code == 0
-    mock_client.tags.delete_host_tags.assert_called_once_with(
-        host_name="web-prod-01", source="users"
-    )
 
 
 def test_tag_add_requires_tags_argument(runner):

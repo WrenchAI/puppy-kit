@@ -93,7 +93,7 @@ def test_pipelines_json(mock_client, runner):
         result = runner.invoke(ci, ["pipelines", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["id"] == "evt-100"
         assert output[0]["name"] == "build-app"
@@ -214,7 +214,7 @@ def test_tests_json(mock_client, runner):
         result = runner.invoke(ci, ["tests", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["id"] == "test-200"
         assert output[0]["name"] == "test_signup"
@@ -325,7 +325,7 @@ def test_pipeline_details_json(mock_client, runner):
         result = runner.invoke(ci, ["pipeline-details", "pipe-xyz", "--format", "json"])
 
         assert result.exit_code == 0
-        output = json.loads(result.output)
+        output = json.loads(result.output)["data"]
         assert len(output) == 1
         assert output[0]["id"] == "evt-json-1"
         assert output[0]["name"] == "build-app"

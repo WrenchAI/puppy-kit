@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
+from puppy_kit.utils.format import truncate, json_list_response
 
 console = Console()
 
@@ -18,7 +19,7 @@ def host():
 
 @host.command(name="list")
 @click.option("--filter", help="Filter hosts (e.g., service:web)")
-@click.option("--limit", default=100, help="Maximum hosts to show")
+@click.option("--limit", default=50, type=int, help="Maximum hosts to show [default: 50]")
 @click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
@@ -63,13 +64,13 @@ def list_hosts(filter, limit, format):
                 dt = datetime.fromtimestamp(h.last_reported_time)
                 last_reported = dt.strftime("%Y-%m-%d %H:%M")
 
-            table.add_row(h.name, status, apps, last_reported)
+            table.add_row(truncate(h.name, 80), status, apps, last_reported)
 
         console.print(table)
         console.print(f"\n[dim]Total hosts: {result.total_matching}[/dim]")
 
     elif format == "json":
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response([h.to_dict() for h in (result.host_list or [])])))
 
 
 @host.command(name="get")
@@ -117,7 +118,7 @@ def get_host(hostname, format):
                 console.print(f"  [dim]{source}:[/dim] {', '.join(tags[:5])}")
 
     elif format == "json":
-        print(json.dumps(host.to_dict(), indent=2, default=str))
+        click.echo(json.dumps(json_list_response([host.to_dict()])))
 
 
 @host.command(name="totals")

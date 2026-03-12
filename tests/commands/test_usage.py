@@ -55,7 +55,7 @@ def test_usage_summary_json(mock_client, runner):
         )
 
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = json.loads(result.output)["data"]
     assert data["apm_host_top99p"] == 15
     assert data["infra_host_top99p"] == 120
     assert data["container_avg"] == 350
@@ -130,7 +130,7 @@ def test_usage_hosts_json(mock_client, runner):
         result = runner.invoke(usage, ["hosts", "--from", "24h", "--format", "json"])
 
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = json.loads(result.output)["data"]
     assert len(data) == 1
     assert data[0]["host_count"] == 120
     assert data[0]["container_count"] == 350
@@ -184,7 +184,7 @@ def test_usage_logs_json(mock_client, runner):
         result = runner.invoke(usage, ["logs", "--from", "24h", "--format", "json"])
 
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = json.loads(result.output)["data"]
     assert len(data) == 1
     assert data[0]["ingested_events_count"] == 500000
     assert data[0]["indexed_events_count"] == 125000
@@ -243,7 +243,7 @@ def test_usage_top_avg_metrics_json(mock_client, runner):
         result = runner.invoke(usage, ["top-avg-metrics", "--month", "2024-01", "--format", "json"])
 
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = json.loads(result.output)["data"]
     assert len(data) == 1
     assert data[0]["metric_name"] == "system.cpu.user"
     assert data[0]["avg_metric_hour"] == 42

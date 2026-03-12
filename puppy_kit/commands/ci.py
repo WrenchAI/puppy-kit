@@ -8,6 +8,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -78,7 +79,7 @@ def pipelines(query, from_time, to_time, limit, format):
 
     if format == "json":
         output = [_extract_event_fields(e) for e in events]
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="CI Pipeline Events")
         table.add_column("ID", style="cyan", width=20)
@@ -151,7 +152,7 @@ def tests(query, from_time, to_time, limit, format):
 
     if format == "json":
         output = [_extract_event_fields(e) for e in events]
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="CI Test Events")
         table.add_column("ID", style="cyan", width=20)
@@ -213,7 +214,7 @@ def pipeline_details(pipeline_id, format):
 
     if format == "json":
         output = [_extract_event_fields(e) for e in events]
-        print(json.dumps(output, indent=2, default=str))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title=f"Pipeline Details: {pipeline_id}")
         table.add_column("ID", style="cyan", width=20)

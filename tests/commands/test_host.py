@@ -88,16 +88,15 @@ def test_host_list_with_filter(mock_client, runner):
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify API was called with filter
-        mock_client.hosts.list_hosts.assert_called_once_with(filter="service:web", count=100)
+        mock_client.hosts.list_hosts.assert_called_once_with(filter="service:web", count=50)
 
         # Parse JSON output
         import json
 
-        output = json.loads(result.output)
+        output = json.loads(result.output).get("data", [])
 
-        assert output["total_matching"] == 2
-        assert len(output["host_list"]) == 2
-        assert output["host_list"][0]["name"] == "web-prod-01"
+        assert len(output) == 2
+        assert output[0]["name"] == "web-prod-01"
 
 
 def test_host_list_no_hosts_found(mock_client, runner):
@@ -182,11 +181,11 @@ def test_host_get_found(mock_client, runner):
         # Parse JSON output
         import json
 
-        output = json.loads(result.output)
+        output = json.loads(result.output).get("data", [])
 
-        assert output["name"] == "web-prod-01"
-        assert output["is_up"] is True
-        assert "nginx" in output["apps"]
+        assert output[0]["name"] == "web-prod-01"
+        assert output[0]["is_up"] is True
+        assert "nginx" in output[0]["apps"]
 
 
 def test_host_get_not_found(mock_client, runner):

@@ -30,6 +30,7 @@ def mock_configuration():
         mock_instance = Mock()
         mock_instance.api_key = {}
         mock_instance.server_variables = {}
+        mock_instance.unstable_operations = {}
         mock_config_class.return_value = mock_instance
         yield mock_config_class, mock_instance
 

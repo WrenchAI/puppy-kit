@@ -7,6 +7,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.confirm import confirm_action
+from puppy_kit.utils.format import json_list_response
 
 console = Console()
 
@@ -19,22 +20,75 @@ def user():
 
 @user.command(name="list")
 @click.option(
+    "--limit",
+    type=click.IntRange(min=1),
+    default=None,
+    help="Max users to fetch (alias for --page-size)",
+)
+@click.option(
+    "--page-size",
+    type=click.IntRange(min=1),
+    default=100,
+    show_default=True,
+    help="Number of users to fetch per page",
+)
+@click.option("--filter", "filter_text", default=None, help="Filter users by name or email")
+@click.option(
+    "--filter-status",
+    default=None,
+    help="Filter by status: Active, Pending, Disabled (comma-separated)",
+)
+@click.option(
+    "--sort",
+    type=click.Choice(["name", "modified_at", "user_count"], case_sensitive=False),
+    default="name",
+    show_default=True,
+    help="Sort field",
+)
+@click.option(
+    "--all-pages/--no-all-pages",
+    default=True,
+    show_default=True,
+    help="Fetch all pages of users",
+)
+@click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def list_users(format):
+def list_users(limit, page_size, filter_text, filter_status, sort, all_pages, format):
     """List all users in the organization."""
     client = get_datadog_client()
 
-    with console.status("[cyan]Fetching users...[/cyan]"):
-        response = client.users.list_users()
+    # Use limit as alias for page_size if provided
+    if limit is not None:
+        page_size = limit
 
-    users_data = response.data if response.data else []
+    with console.status("[cyan]Fetching users...[/cyan]"):
+        users_data = []
+        page_number = 0
+        while True:
+            kwargs = {
+                "page_size": page_size,
+                "page_number": page_number,
+                "sort": sort,
+            }
+            if filter_text:
+                kwargs["filter"] = filter_text
+            if filter_status:
+                kwargs["filter_status"] = filter_status
+
+            response = client.users.list_users(**kwargs)
+            page_users = list(response.data or [])
+            users_data.extend(page_users)
+
+            if not all_pages or len(page_users) < page_size:
+                break
+            page_number += 1
 
     if format == "json":
         output = []
         for u in users_data:
-            attrs = u.attributes
+            attrs = getattr(u, "attributes", None)
             output.append(
                 {
                     "id": u.id,
@@ -42,26 +96,31 @@ def list_users(format):
                     "email": getattr(attrs, "email", None),
                     "handle": getattr(attrs, "handle", None),
                     "status": getattr(attrs, "status", None),
+                    "title": getattr(attrs, "title", None),
                     "disabled": getattr(attrs, "disabled", None),
                     "created_at": str(getattr(attrs, "created_at", None)),
                 }
             )
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         table = Table(title="Users")
-        table.add_column("Name", style="cyan")
-        table.add_column("Email", style="white")
+        table.add_column("ID", style="dim")
         table.add_column("Status", style="yellow")
-        table.add_column("Created At", style="dim")
+        table.add_column("Email", style="white")
+        table.add_column("Name", style="cyan")
+        table.add_column("Title", style="white")
+        table.add_column("Created", style="dim")
 
         for u in users_data:
-            attrs = u.attributes
-            name = getattr(attrs, "name", "") or ""
-            email = getattr(attrs, "email", "") or ""
+            attrs = getattr(u, "attributes", None)
+            user_id = getattr(u, "id", "") or ""
             status = getattr(attrs, "status", "") or ""
+            email = getattr(attrs, "email", "") or ""
+            name = getattr(attrs, "name", "") or ""
+            title = getattr(attrs, "title", "") or ""
             created_at = str(getattr(attrs, "created_at", "")) or ""
 
-            table.add_row(name, email, status, created_at)
+            table.add_row(user_id, status, email, name, title, created_at)
 
         console.print(table)
         console.print(f"\n[dim]Total users: {len(users_data)}[/dim]")
@@ -81,11 +140,12 @@ def get_user(user_id, format):
         response = client.users.get_user(user_id=user_id)
 
     u = response.data
-    attrs = u.attributes
+    attrs = getattr(u, "attributes", None)
+    user_id_value = getattr(u, "id", "N/A")
 
     if format == "json":
         output = {
-            "id": u.id,
+            "id": user_id_value,
             "name": getattr(attrs, "name", None),
             "email": getattr(attrs, "email", None),
             "handle": getattr(attrs, "handle", None),
@@ -93,9 +153,9 @@ def get_user(user_id, format):
             "disabled": getattr(attrs, "disabled", None),
             "created_at": str(getattr(attrs, "created_at", None)),
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
-        console.print(f"\n[bold cyan]User {u.id}[/bold cyan]")
+        console.print(f"\n[bold cyan]User {user_id_value}[/bold cyan]")
         console.print(f"[bold]Name:[/bold] {getattr(attrs, 'name', 'N/A')}")
         console.print(f"[bold]Email:[/bold] {getattr(attrs, 'email', 'N/A')}")
         console.print(f"[bold]Handle:[/bold] {getattr(attrs, 'handle', 'N/A')}")
@@ -160,7 +220,7 @@ def invite_user(email, role, format):
             "user_id": new_user.id,
             "status": "invitation_sent",
         }
-        print(json.dumps(output, indent=2))
+        click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"[green]Invitation sent to {email}[/green]")
         console.print(f"[dim]User ID: {new_user.id}[/dim]")
