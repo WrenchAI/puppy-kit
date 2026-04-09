@@ -12,6 +12,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import requests as _requests
+
 from mcp.server.fastmcp import FastMCP
 
 from puppy_kit.client import DatadogClient
@@ -61,7 +63,7 @@ def _extract_incident(inc: object) -> dict[str, Any]:
     return {
         "id": getattr(inc, "id", None),
         "title": getattr(attrs, "title", ""),
-        "status": str(getattr(attrs, "status", "")),
+        "status": str(getattr(attrs, "state", "")),
         "severity": str(getattr(attrs, "severity", "")),
         "created": str(getattr(attrs, "created", "")),
         "modified": str(getattr(attrs, "modified", "")),
@@ -289,8 +291,6 @@ def dd_incidents_update(
     attrs_kwargs: dict[str, Any] = {}
     if title is not None:
         attrs_kwargs["title"] = title
-    if status is not None:
-        attrs_kwargs["status"] = status
     if severity is not None:
         attrs_kwargs["fields"] = {
             "severity": {"type": "dropdown", "value": severity},
@@ -305,7 +305,29 @@ def dd_incidents_update(
     )
     with _get_client() as client:
         response = client.incidents.update_incident(incident_id=incident_id, body=body)
-    return _to_json(_extract_incident(response.data))
+        inc = response.data
+
+    # "state" is the Datadog custom-field key for incident status.
+    # IncidentUpdateAttributes has no status/state attribute, so we must
+    # update it via a raw PATCH to the fields endpoint.
+    if status is not None:
+        config = load_config()
+        base_url = f"https://{config.site}/api/v2/incidents"
+        headers = {
+            "DD-API-KEY": config.api_key,
+            "DD-APPLICATION-KEY": config.app_key,
+            "Content-Type": "application/json",
+        }
+        patch_body = {
+            "data": {
+                "type": "incidents",
+                "id": inc.id,
+                "attributes": {"fields": {"state": {"type": "dropdown", "value": status}}},
+            }
+        }
+        _requests.patch(f"{base_url}/{inc.id}", headers=headers, json=patch_body, timeout=30).raise_for_status()
+
+    return _to_json(_extract_incident(inc))
 
 
 @mcp.tool()

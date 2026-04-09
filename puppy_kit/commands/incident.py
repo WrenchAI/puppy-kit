@@ -210,7 +210,7 @@ def list_incidents(
                     "id": _get_attr(inc, "id", ""),
                     "title": _get_attr(attrs, "title", ""),
                     "severity": _stringify_enum(_get_attr(attrs, "severity", "unknown")),
-                    "status": _stringify_enum(_get_attr(attrs, "status", "unknown")),
+                    "status": _stringify_enum(_get_attr(attrs, "state", "unknown")),
                     "customer_impacted": _get_attr(attrs, "customer_impacted", "unknown"),
                     "public_id": _get_attr(inc, "public_id", "unknown"),
                     "detected": _stringify_datetime(_get_attr(attrs, "detected", "")),
@@ -231,7 +231,7 @@ def list_incidents(
 
         for inc in all_incidents:
             attrs = getattr(inc, "attributes", None)
-            status_str = _stringify_enum(_get_attr(attrs, "status", "unknown"))
+            status_str = _stringify_enum(_get_attr(attrs, "state", "unknown"))
             severity_str = _stringify_enum(_get_attr(attrs, "severity", "unknown"))
             status_color = {
                 "active": "red",
@@ -273,7 +273,7 @@ def get_incident(incident_id, format):
             "id": inc.id,
             "title": getattr(attrs, "title", ""),
             "severity": _stringify_enum(getattr(attrs, "severity", "unknown")),
-            "status": _stringify_enum(getattr(attrs, "status", "unknown")),
+            "status": _stringify_enum(getattr(attrs, "state", "unknown")),
             "customer_impacted": getattr(attrs, "customer_impacted", "unknown"),
             "public_id": getattr(inc, "public_id", "unknown"),
             "detected": _stringify_datetime(getattr(attrs, "detected", "")),
@@ -289,7 +289,7 @@ def get_incident(incident_id, format):
         severity_str = _stringify_enum(getattr(attrs, "severity", "unknown"))
         console.print(f"[bold]Severity:[/bold] [yellow]{severity_str}[/yellow]")
 
-        status_str = _stringify_enum(getattr(attrs, "status", "unknown"))
+        status_str = _stringify_enum(getattr(attrs, "state", "unknown"))
         status_color = {
             "active": "red",
             "stable": "yellow",
@@ -377,7 +377,7 @@ def create_incident(title, severity, team, assignee, format):
             "id": inc.id,
             "title": getattr(attrs, "title", ""),
             "severity": _stringify_enum(getattr(attrs, "severity", severity or "unknown")),
-            "status": _stringify_enum(getattr(attrs, "status", "unknown")),
+            "status": _stringify_enum(getattr(attrs, "state", "unknown")),
         }
         click.echo(json.dumps(json_list_response(output)))
     else:
@@ -468,10 +468,6 @@ def update_incident(
     from datadog_api_client.v2.model.incident_update_request import IncidentUpdateRequest
     from datadog_api_client.v2.model.incident_update_data import IncidentUpdateData
     from datadog_api_client.v2.model.incident_update_attributes import IncidentUpdateAttributes
-    from datadog_api_client.v2.model.incident_field_attributes import IncidentFieldAttributes
-    from datadog_api_client.v2.model.incident_field_attributes_single_value_type import (
-        IncidentFieldAttributesSingleValueType,
-    )
 
     field_opts = [
         summary,
@@ -502,11 +498,6 @@ def update_incident(
         attrs_kwargs["assignee"] = assignee
 
     fields = {}
-    if status is not None:
-        fields["state"] = IncidentFieldAttributes(
-            type=IncidentFieldAttributesSingleValueType.DROPDOWN,
-            value=status,
-        )
     if severity is not None:
         fields["severity"] = {"type": "dropdown", "value": severity}
     if fields:
@@ -528,6 +519,10 @@ def update_incident(
 
     # Handle field updates via raw requests if any field options are provided
     field_data = {}
+    if status is not None:
+        # "state" is the Datadog custom-field key for incident status;
+        # IncidentUpdateAttributes does not expose it as a typed attribute.
+        field_data["state"] = {"type": "dropdown", "value": status}
     if summary is not None:
         field_data["summary"] = {"type": "textbox", "value": summary}
     if root_cause is not None:
@@ -594,7 +589,7 @@ def update_incident(
         output = {
             "id": inc.id,
             "title": getattr(attrs, "title", ""),
-            "status": _stringify_enum(getattr(attrs, "status", "unknown")),
+            "status": _stringify_enum(getattr(attrs, "state", "unknown")),
             "assignee": getattr(attrs, "assignee", ""),
         }
         click.echo(json.dumps(json_list_response(output)))
