@@ -27,7 +27,7 @@ def _make_incident(
     inc.attributes = Mock(
         title=title,
         severity=severity,
-        status=status,
+        state=status,
         customer_impacted=customer_impacted,
         detected=detected,
         resolved=resolved,
@@ -307,16 +307,22 @@ class TestUpdateIncident:
         response = Mock(data=inc)
         mock_client.incidents.update_incident.return_value = response
 
+        mock_cfg = Mock(site="datadoghq.com", api_key="test-api-key", app_key="test-app-key")
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(
-                incident, ["update", "inc-1", "--title", "Updated title", "--status", "stable"]
-            )
+            with patch("puppy_kit.commands.incident.load_config", return_value=mock_cfg):
+                with patch("puppy_kit.commands.incident.requests.patch") as mock_patch:
+                    mock_patch.return_value = Mock(raise_for_status=Mock())
+                    result = runner.invoke(
+                        incident,
+                        ["update", "inc-1", "--title", "Updated title", "--status", "stable"],
+                    )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "inc-1" in result.output
         assert "updated" in result.output
         assert "Updated title" in result.output
         mock_client.incidents.update_incident.assert_called_once()
+        mock_patch.assert_called_once()
 
     def test_update_incident_severity_only(self, mock_client, runner):
         """Test updating only the severity of an incident."""
