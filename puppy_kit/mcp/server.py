@@ -60,10 +60,21 @@ def _extract_monitor(m: object) -> dict[str, Any]:
 def _extract_incident(inc: object) -> dict[str, Any]:
     """Extract key fields from a Datadog incident SDK object."""
     attrs = getattr(inc, "attributes", inc)
+    # State lives in attrs.fields["state"], not as a top-level attribute.
+    fields = getattr(attrs, "fields", {}) or {}
+    state_field = fields.get("state", None)
+    if state_field is not None:
+        state_value = str(
+            getattr(state_field, "value", "")
+            if hasattr(state_field, "value")
+            else state_field.get("value", "") if isinstance(state_field, dict) else ""
+        )
+    else:
+        state_value = ""
     return {
         "id": getattr(inc, "id", None),
         "title": getattr(attrs, "title", ""),
-        "status": str(getattr(attrs, "state", "")),
+        "status": state_value,
         "severity": str(getattr(attrs, "severity", "")),
         "created": str(getattr(attrs, "created", "")),
         "modified": str(getattr(attrs, "modified", "")),
@@ -291,10 +302,14 @@ def dd_incidents_update(
     attrs_kwargs: dict[str, Any] = {}
     if title is not None:
         attrs_kwargs["title"] = title
+    # Both severity and state live in the "fields" dict.
+    fields: dict[str, Any] = {}
     if severity is not None:
-        attrs_kwargs["fields"] = {
-            "severity": {"type": "dropdown", "value": severity},
-        }
+        fields["severity"] = {"type": "dropdown", "value": severity}
+    if status is not None:
+        fields["state"] = {"type": "dropdown", "value": status}
+    if fields:
+        attrs_kwargs["fields"] = fields
 
     body = IncidentUpdateRequest(
         data=IncidentUpdateData(
@@ -306,26 +321,6 @@ def dd_incidents_update(
     with _get_client() as client:
         response = client.incidents.update_incident(incident_id=incident_id, body=body)
         inc = response.data
-
-    # "state" is the Datadog custom-field key for incident status.
-    # IncidentUpdateAttributes has no status/state attribute, so we must
-    # update it via a raw PATCH to the fields endpoint.
-    if status is not None:
-        config = load_config()
-        base_url = f"https://{config.site}/api/v2/incidents"
-        headers = {
-            "DD-API-KEY": config.api_key,
-            "DD-APPLICATION-KEY": config.app_key,
-            "Content-Type": "application/json",
-        }
-        patch_body = {
-            "data": {
-                "type": "incidents",
-                "id": inc.id,
-                "attributes": {"fields": {"state": {"type": "dropdown", "value": status}}},
-            }
-        }
-        _requests.patch(f"{base_url}/{inc.id}", headers=headers, json=patch_body, timeout=30).raise_for_status()
 
     return _to_json(_extract_incident(inc))
 
