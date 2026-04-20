@@ -60,11 +60,26 @@ def _extract_monitor(m: object) -> dict[str, Any]:
 def _extract_incident(inc: object) -> dict[str, Any]:
     """Extract key fields from a Datadog incident SDK object."""
     attrs = getattr(inc, "attributes", inc)
+    fields = getattr(attrs, "fields", None)
+
+    def _field_value(field_key: str, default: str = "") -> str:
+        if isinstance(fields, dict):
+            field_obj = fields.get(field_key)
+            if isinstance(field_obj, dict):
+                value = field_obj.get("value", None)
+            else:
+                value = getattr(field_obj, "value", None)
+            if value is not None:
+                return str(value)
+        return str(default)
+
+    state = getattr(attrs, "state", None)
+    severity = getattr(attrs, "severity", None)
     return {
         "id": getattr(inc, "id", None),
         "title": getattr(attrs, "title", ""),
-        "status": str(getattr(attrs, "state", "")),
-        "severity": str(getattr(attrs, "severity", "")),
+        "status": str(state) if state else _field_value("state"),
+        "severity": str(severity) if severity else _field_value("severity"),
         "created": str(getattr(attrs, "created", "")),
         "modified": str(getattr(attrs, "modified", "")),
     }

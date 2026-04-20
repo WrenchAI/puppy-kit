@@ -38,6 +38,16 @@ def _make_incident(
     return inc
 
 
+def _make_incident_fields_only(id, title, severity, status):
+    """Create a mock incident where severity/state live only in fields payload."""
+    inc = _make_incident(id, title, None, None)
+    inc.attributes.fields = {
+        "severity": Mock(value=severity),
+        "state": Mock(value=status),
+    }
+    return inc
+
+
 def _make_search_response(incidents, next_offset=None, offset=0, size=None):
     """Create a mock search_incidents response."""
     pagination = Mock(
@@ -107,6 +117,22 @@ class TestListIncidents:
         mock_client.incidents.search_incidents.assert_called_with(
             "", sort="-created", page_size=100, page_offset=0
         )
+
+    def test_list_incidents_json_uses_fields_fallback_for_state_and_severity(
+        self, mock_client, runner
+    ):
+        """Datadog SDK may store state/severity under attributes.fields."""
+        incidents = [_make_incident_fields_only("inc-1", "Service outage", "SEV-1", "stable")]
+        response = _make_search_response(incidents)
+        mock_client.incidents.search_incidents.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["list", "--format", "json"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        output = json.loads(result.output)["data"]
+        assert output[0]["severity"] == "SEV-1"
+        assert output[0]["status"] == "stable"
 
     def test_list_incidents_empty(self, mock_client, runner):
         """Test listing incidents when none exist."""
@@ -239,6 +265,22 @@ class TestGetIncident:
         assert output["title"] == "Service outage"
         assert output["severity"] == "SEV-1"
         assert output["status"] == "active"
+
+    def test_get_incident_json_uses_fields_fallback_for_state_and_severity(
+        self, mock_client, runner
+    ):
+        """Incident get should surface values from attributes.fields fallback."""
+        inc = _make_incident_fields_only("inc-1", "Service outage", "SEV-1", "resolved")
+        response = Mock(data=inc)
+        mock_client.incidents.get_incident.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        output = json.loads(result.output)["data"]
+        assert output["severity"] == "SEV-1"
+        assert output["status"] == "resolved"
 
 
 class TestCreateIncident:
