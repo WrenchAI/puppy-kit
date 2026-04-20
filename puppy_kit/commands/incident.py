@@ -51,6 +51,27 @@ def _get_attr(attrs, field, default=""):
     return default if val is None else val
 
 
+def _get_incident_field_value(attrs, field_key):
+    """Read an incident custom field value from attributes.fields."""
+    fields = _get_attr(attrs, "fields", None)
+    if isinstance(fields, dict):
+        field_obj = fields.get(field_key)
+        if isinstance(field_obj, dict):
+            return field_obj.get("value", None)
+        return getattr(field_obj, "value", None)
+    return None
+
+
+def _incident_state(attrs):
+    """Extract incident state with fallback to custom fields payload."""
+    return _get_attr(attrs, "state", _get_incident_field_value(attrs, "state"))
+
+
+def _incident_severity(attrs):
+    """Extract incident severity with fallback to custom fields payload."""
+    return _get_attr(attrs, "severity", _get_incident_field_value(attrs, "severity"))
+
+
 @click.group()
 def incident():
     """Incident management commands."""
@@ -209,8 +230,8 @@ def list_incidents(
                 {
                     "id": _get_attr(inc, "id", ""),
                     "title": _get_attr(attrs, "title", ""),
-                    "severity": _stringify_enum(_get_attr(attrs, "severity", "unknown")),
-                    "status": _stringify_enum(_get_attr(attrs, "state", "unknown")),
+                    "severity": _stringify_enum(_incident_severity(attrs), "unknown"),
+                    "status": _stringify_enum(_incident_state(attrs), "unknown"),
                     "customer_impacted": _get_attr(attrs, "customer_impacted", "unknown"),
                     "public_id": _get_attr(inc, "public_id", "unknown"),
                     "detected": _stringify_datetime(_get_attr(attrs, "detected", "")),
@@ -231,8 +252,8 @@ def list_incidents(
 
         for inc in all_incidents:
             attrs = getattr(inc, "attributes", None)
-            status_str = _stringify_enum(_get_attr(attrs, "state", "unknown"))
-            severity_str = _stringify_enum(_get_attr(attrs, "severity", "unknown"))
+            status_str = _stringify_enum(_incident_state(attrs), "unknown")
+            severity_str = _stringify_enum(_incident_severity(attrs), "unknown")
             status_color = {
                 "active": "red",
                 "stable": "yellow",
@@ -272,8 +293,8 @@ def get_incident(incident_id, format):
         output = {
             "id": inc.id,
             "title": getattr(attrs, "title", ""),
-            "severity": _stringify_enum(getattr(attrs, "severity", "unknown")),
-            "status": _stringify_enum(getattr(attrs, "state", "unknown")),
+            "severity": _stringify_enum(_incident_severity(attrs), "unknown"),
+            "status": _stringify_enum(_incident_state(attrs), "unknown"),
             "customer_impacted": getattr(attrs, "customer_impacted", "unknown"),
             "public_id": getattr(inc, "public_id", "unknown"),
             "detected": _stringify_datetime(getattr(attrs, "detected", "")),
@@ -286,10 +307,10 @@ def get_incident(incident_id, format):
         console.print(f"\n[bold cyan]Incident {inc.id}[/bold cyan]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
 
-        severity_str = _stringify_enum(getattr(attrs, "severity", "unknown"))
+        severity_str = _stringify_enum(_incident_severity(attrs), "unknown")
         console.print(f"[bold]Severity:[/bold] [yellow]{severity_str}[/yellow]")
 
-        status_str = _stringify_enum(getattr(attrs, "state", "unknown"))
+        status_str = _stringify_enum(_incident_state(attrs), "unknown")
         status_color = {
             "active": "red",
             "stable": "yellow",
@@ -376,18 +397,18 @@ def create_incident(title, severity, team, assignee, format):
         output = {
             "id": inc.id,
             "title": getattr(attrs, "title", ""),
-            "severity": _stringify_enum(getattr(attrs, "severity", severity or "unknown")),
-            "status": _stringify_enum(getattr(attrs, "state", "unknown")),
+            "severity": _stringify_enum(_incident_severity(attrs), severity or "unknown"),
+            "status": _stringify_enum(_incident_state(attrs), "unknown"),
         }
         click.echo(json.dumps(json_list_response(output)))
     else:
         console.print(f"[green]Incident {inc.id} created[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
         console.print(
-            f"[bold]Severity:[/bold] {_stringify_enum(getattr(attrs, 'severity', severity or 'unknown'))}"
+            f"[bold]Severity:[/bold] {_stringify_enum(_incident_severity(attrs), severity or 'unknown')}"
         )
         console.print(
-            f"[bold]Status:[/bold] {_stringify_enum(getattr(attrs, 'status', 'unknown'))}"
+            f"[bold]Status:[/bold] {_stringify_enum(_incident_state(attrs), 'unknown')}"
         )
 
 
@@ -589,7 +610,7 @@ def update_incident(
         output = {
             "id": inc.id,
             "title": getattr(attrs, "title", ""),
-            "status": _stringify_enum(getattr(attrs, "state", "unknown")),
+            "status": _stringify_enum(_incident_state(attrs), "unknown"),
             "assignee": getattr(attrs, "assignee", ""),
         }
         click.echo(json.dumps(json_list_response(output)))
