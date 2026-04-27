@@ -4,6 +4,8 @@
 
 A modern CLI for the Datadog API with 18 command groups, Rich terminal output, retry logic, and an optional MCP server that lets AI agents detect, triage, and resolve incidents autonomously.
 
+Forked from [ddogctl](https://github.com/srgfrancisco/ddogctl) by Sergio Francisco (MIT License).
+
 ## Features
 
 - 18 command groups covering monitors, incidents, logs, APM, dashboards, and more
@@ -239,6 +241,12 @@ uv run ruff format puppy_kit/ tests/
 # Run CLI in development
 uv run puppy --help
 ```
+
+## Attribution
+
+- Original project: [ddogctl](https://github.com/srgfrancisco/ddogctl) by Sergio Francisco
+- License: MIT (preserved)
+- Fork maintained by: [WrenchAI](https://github.com/WrenchAI)
 
 ## License
 
