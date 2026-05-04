@@ -69,3 +69,4 @@ markers = [
 
 [tool.ruff]
 line-length = 100
+exclude = ["puppy_kit/_version.py"]
