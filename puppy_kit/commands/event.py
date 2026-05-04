@@ -125,8 +125,8 @@ def post_event(title, text, tags, priority):
     event_req = EventCreateRequest(
         title=title,
         text=text or title,
-        tags=tag_list,
-        priority=priority,  # ty:ignore[invalid-argument-type]
+        tags=tag_list,  # ty: ignore[invalid-argument-type]
+        priority=priority,
     )
 
     with console.status("[cyan]Posting event...[/cyan]"):
