@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-puppy-kit is a Datadog CLI + optional MCP server for AI-driven incident management. Forked from [ddogctl](https://github.com/srgfrancisco/ddogctl) (MIT). 22 command groups, 100+ subcommands, Rich terminal output, retry logic, structured JSON output, stdin piping, and investigation workflows. Requires Python 3.10+.
+puppy-kit is a Datadog CLI + optional MCP server for AI-driven incident management. 22 command groups, 100+ subcommands, Rich terminal output, retry logic, structured JSON output, stdin piping, and investigation workflows. Requires Python 3.10+.
 
 ## Commands
 

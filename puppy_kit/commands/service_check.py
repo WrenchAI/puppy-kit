@@ -65,6 +65,6 @@ def post_check(check_name, host, status, message, tags):
     ]
 
     client = get_datadog_client()
-    client.service_checks.submit_service_check(body=body)
+    client.service_checks.submit_service_check(body=body)  # ty:ignore[invalid-argument-type]
 
     console.print(f"[green]Service check posted:[/green] {check_name} on {host} = {status_name}")

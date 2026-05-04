@@ -335,11 +335,17 @@ class TestCreateIncident:
         assert result.exit_code != 0
         assert "Missing" in result.output or "required" in result.output.lower()
 
-    def test_create_incident_missing_severity(self, runner):
-        """Test that create fails without required --severity."""
-        result = runner.invoke(incident, ["create", "--title", "Outage", "--team", "ops"])
-        assert result.exit_code != 0
-        assert "Missing" in result.output or "required" in result.output.lower()
+    def test_create_incident_without_severity(self, mock_client, runner):
+        """Test that create succeeds without --severity (now optional)."""
+        inc = _make_incident("inc-new", "Outage", "SEV-1", "active")
+        response = Mock(data=inc)
+        mock_client.incidents.create_incident.return_value = response
+
+        with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
+            result = runner.invoke(incident, ["create", "--title", "Outage"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_client.incidents.create_incident.assert_called_once()
 
 
 class TestUpdateIncident:

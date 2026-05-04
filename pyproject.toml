@@ -44,6 +44,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "ruff>=0.8.0",
+    "ty",
 ]
 
 [project.scripts]
@@ -68,3 +69,4 @@ markers = [
 
 [tool.ruff]
 line-length = 100
+exclude = ["puppy_kit/_version.py"]

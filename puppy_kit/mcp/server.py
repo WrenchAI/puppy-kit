@@ -9,15 +9,8 @@ Run:
 
 from __future__ import annotations
 
-import json
-from typing import Any
-
-import requests as _requests
-
+from click.testing import CliRunner
 from mcp.server.fastmcp import FastMCP
-
-from puppy_kit.client import DatadogClient
-from puppy_kit.config import load_config
 
 mcp = FastMCP(
     "puppy-kit",
@@ -29,179 +22,54 @@ mcp = FastMCP(
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _get_client() -> DatadogClient:
-    """Create a DatadogClient using env vars / config file (no Click context)."""
-    config = load_config()
-    return DatadogClient(config)
-
-
-def _to_json(data: Any) -> str:  # noqa: ANN401
-    """Serialize SDK response data to JSON string."""
-    return json.dumps(data, indent=2, default=str)
-
-
-def _extract_monitor(m: object) -> dict[str, Any]:
-    """Extract key fields from a Datadog monitor SDK object."""
-    return {
-        "id": getattr(m, "id", None),
-        "name": getattr(m, "name", ""),
-        "type": str(getattr(m, "type", "")),
-        "overall_state": str(getattr(m, "overall_state", "")),
-        "query": getattr(m, "query", ""),
-        "message": getattr(m, "message", ""),
-        "tags": getattr(m, "tags", []),
-    }
-
-
-def _extract_incident(inc: object) -> dict[str, Any]:
-    """Extract key fields from a Datadog incident SDK object."""
-    attrs = getattr(inc, "attributes", inc)
-    fields = getattr(attrs, "fields", None)
-
-    def _field_value(field_key: str, default: str = "") -> str:
-        if isinstance(fields, dict):
-            field_obj = fields.get(field_key)
-            if isinstance(field_obj, dict):
-                value = field_obj.get("value", None)
-            else:
-                value = getattr(field_obj, "value", None)
-            if value is not None:
-                return str(value)
-        return str(default)
-
-    state = getattr(attrs, "state", None)
-    severity = getattr(attrs, "severity", None)
-    return {
-        "id": getattr(inc, "id", None),
-        "title": getattr(attrs, "title", ""),
-        "status": str(state) if state else _field_value("state"),
-        "severity": str(severity) if severity else _field_value("severity"),
-        "created": str(getattr(attrs, "created", "")),
-        "modified": str(getattr(attrs, "modified", "")),
-    }
-
-
-# ---------------------------------------------------------------------------
 # Monitors
 # ---------------------------------------------------------------------------
 
 
 @mcp.tool()
 def dd_monitors_list(
-    name: str | None = None,
     tags: str | None = None,
     page_size: int = 100,
 ) -> str:
-    """List Datadog monitors with optional filtering.
+    """List Datadog monitors with optional tag and state filters.
+
+    Use this to survey monitor health, find monitors in Alert or Warn state, or
+    locate a specific monitor by name before investigating. Returns id, name, type,
+    overall_state, query, message, and tags for each monitor.
 
     Args:
-        name: Filter by monitor name substring.
         tags: Filter by monitor tags (comma-separated).
-        page_size: Number of monitors per page.
+        page_size: Number of monitors to return.
 
     Returns JSON array of monitor summaries.
     """
-    with _get_client() as client:
-        kwargs: dict[str, Any] = {"page_size": page_size}
-        if name:
-            kwargs["name"] = name
-        if tags:
-            kwargs["monitor_tags"] = tags
-        monitors = client.monitors.list_monitors(**kwargs)
-    return _to_json([_extract_monitor(m) for m in monitors])
+    from puppy_kit.commands.monitor import list_monitors
+
+    args = ["--format", "json", "--limit", str(page_size)]
+    if tags:
+        args += ["--tags", tags]
+    result = CliRunner().invoke(list_monitors, args, catch_exceptions=False)
+    return result.output
 
 
 @mcp.tool()
 def dd_monitors_get(monitor_id: int) -> str:
-    """Get details of a specific Datadog monitor.
+    """Get full configuration and current state of a single Datadog monitor by ID.
+
+    Use this when you have a monitor ID and need its query, thresholds, notification
+    message, or current alert status before deciding on a course of action.
 
     Args:
         monitor_id: The monitor ID to retrieve.
 
-    Returns JSON with monitor details including query, thresholds, status.
+    Returns JSON with monitor details including query, thresholds, and overall_state.
     """
-    with _get_client() as client:
-        m = client.monitors.get_monitor(monitor_id=monitor_id)
-    return _to_json(_extract_monitor(m))
+    from puppy_kit.commands.monitor import get_monitor
 
-
-@mcp.tool()
-def dd_monitors_create(
-    name: str,
-    monitor_type: str,
-    query: str,
-    message: str = "",
-    tags: list[str] | None = None,
-) -> str:
-    """Create a new Datadog monitor.
-
-    Args:
-        name: Monitor name.
-        monitor_type: Type (e.g. 'metric alert', 'log alert', 'service check').
-        query: Monitor query string.
-        message: Notification message (supports @slack-channel, @email).
-        tags: Monitor tags.
-
-    Returns JSON of the created monitor.
-    """
-    from datadog_api_client.v1.model.monitor import Monitor
-
-    body = Monitor(
-        name=name,
-        type=monitor_type,
-        query=query,
-        message=message,
-        tags=tags or [],
+    result = CliRunner().invoke(
+        get_monitor, [str(monitor_id), "--format", "json"], catch_exceptions=False
     )
-    with _get_client() as client:
-        result = client.monitors.create_monitor(body=body)
-    return _to_json(_extract_monitor(result))
-
-
-@mcp.tool()
-def dd_monitors_delete(monitor_id: int) -> str:
-    """Delete a Datadog monitor.
-
-    Args:
-        monitor_id: The monitor ID to delete.
-
-    Returns confirmation message.
-    """
-    with _get_client() as client:
-        client.monitors.delete_monitor(monitor_id=monitor_id)
-    return _to_json({"status": "deleted", "monitor_id": monitor_id})
-
-
-@mcp.tool()
-def dd_monitors_mute(monitor_id: int) -> str:
-    """Mute a Datadog monitor.
-
-    Args:
-        monitor_id: The monitor ID to mute.
-
-    Returns JSON of the muted monitor.
-    """
-    with _get_client() as client:
-        result = client.monitors.mute_monitor(monitor_id=monitor_id)
-    return _to_json(_extract_monitor(result))
-
-
-@mcp.tool()
-def dd_monitors_unmute(monitor_id: int) -> str:
-    """Unmute a Datadog monitor.
-
-    Args:
-        monitor_id: The monitor ID to unmute.
-
-    Returns confirmation message.
-    """
-    with _get_client() as client:
-        client.monitors.unmute_monitor(monitor_id=monitor_id)
-    return _to_json({"status": "unmuted", "monitor_id": monitor_id})
+    return result.output
 
 
 # ---------------------------------------------------------------------------
@@ -210,72 +78,90 @@ def dd_monitors_unmute(monitor_id: int) -> str:
 
 
 @mcp.tool()
-def dd_incidents_list(page_size: int = 25) -> str:
-    """List all Datadog incidents.
+def dd_incidents_list(
+    status: str | None = None, page_size: int = 25, sort: str = "-created"
+) -> str:
+    """List Datadog incidents. This is the primary triage tool — call this first.
 
-    Returns a JSON array of incident summaries with id, title, status, severity.
+    Defaults to newest-first with no status filter (returns all). To see only open
+    incidents pass status='active' or status='stable'. To see the current incident
+    queue pass status='active' and status='stable' in two separate calls and merge.
+    Returns id, title, status, severity, created, and modified for each incident.
+
+    Args:
+        status: Filter by status: 'active', 'stable', or 'resolved'. None returns all.
+        page_size: Max incidents to return.
+        sort: '-created' (newest first, default) or 'created' (oldest first).
+
+    Returns JSON array of incident summaries.
     """
-    with _get_client() as client:
-        response = client.incidents.list_incidents()
-    incidents = response.data if response.data else []
-    return _to_json([_extract_incident(inc) for inc in incidents[:page_size]])
+    from puppy_kit.commands.incident import list_incidents
+
+    args = ["--format", "json", "--limit", str(page_size), "--sort", sort]
+    if status:
+        args += ["--status", status]
+    result = CliRunner().invoke(list_incidents, args, catch_exceptions=False)
+    return result.output
 
 
 @mcp.tool()
 def dd_incidents_get(incident_id: str) -> str:
-    """Get full details of a Datadog incident.
+    """Get full details of a single Datadog incident by ID.
+
+    Use this after dd_incidents_list to drill into a specific incident. Returns
+    title, status, severity, customer_impacted, public_id, detected, resolved,
+    created, and modified timestamps.
 
     Args:
-        incident_id: The incident ID to retrieve.
+        incident_id: The incident UUID to retrieve.
 
-    Returns JSON with id, title, status, severity, created, modified.
+    Returns JSON with full incident details.
     """
-    with _get_client() as client:
-        response = client.incidents.get_incident(incident_id=incident_id)
-    return _to_json(_extract_incident(response.data))
+    from puppy_kit.commands.incident import get_incident
+
+    result = CliRunner().invoke(
+        get_incident, [incident_id, "--format", "json"], catch_exceptions=False
+    )
+    return result.output
 
 
 @mcp.tool()
 def dd_incidents_create(
     title: str,
-    customer_impacted: bool = False,
     severity: str | None = None,
+    team: str | None = None,
+    customer_impacted: bool = False,
+    assignee: str | None = None,
 ) -> str:
-    """Create a new Datadog incident.
+    """Create a new Datadog incident when a confirmed issue needs to be tracked.
+
+    Use this when a new problem is detected and requires an incident record. Requires
+    a descriptive title. Severity and team are optional and can be set via dd_incidents_update
+    after creation. Returns the created incident ID which can then be passed to
+    dd_incidents_update to set status and add detail.
 
     Args:
-        title: Incident title describing the issue.
-        customer_impacted: Whether customers are affected.
-        severity: Severity level (e.g. SEV-1, SEV-2, SEV-3, SEV-4, SEV-5).
+        title: Short descriptive title of the issue.
+        severity: SEV-1 (critical/outage) through SEV-5 (cosmetic/low impact) (optional).
+        team: Team name responsible for this incident (optional).
+        customer_impacted: Set True if customers are experiencing impact.
+        assignee: Assignee user UUID to set as incident commander (optional).
 
-    Returns JSON of the created incident.
+    Returns JSON of the created incident including its ID.
     """
-    from datadog_api_client.v2.model.incident_create_attributes import (
-        IncidentCreateAttributes,
-    )
-    from datadog_api_client.v2.model.incident_create_data import IncidentCreateData
-    from datadog_api_client.v2.model.incident_create_request import (
-        IncidentCreateRequest,
-    )
+    from puppy_kit.commands.incident import create_incident
 
-    attrs_kwargs: dict[str, Any] = {
-        "title": title,
-        "customer_impacted": customer_impacted,
-    }
-    if severity:
-        attrs_kwargs["fields"] = {
-            "severity": {"type": "dropdown", "value": severity},
-        }
-
-    body = IncidentCreateRequest(
-        data=IncidentCreateData(
-            type="incidents",
-            attributes=IncidentCreateAttributes(**attrs_kwargs),
-        )
-    )
-    with _get_client() as client:
-        response = client.incidents.create_incident(body=body)
-    return _to_json(_extract_incident(response.data))
+    args = ["--format", "json", "--title", title]
+    if severity is not None:
+        args += ["--severity", severity]
+    if team is not None:
+        args += ["--team", team]
+    if assignee:
+        args += ["--assignee", assignee]
+    if customer_impacted:
+        args.append("--customer-impacted")
+    result = CliRunner().invoke(create_incident, args, catch_exceptions=False)
+    return result.output
 
 
 @mcp.tool()
@@ -284,79 +170,56 @@ def dd_incidents_update(
     title: str | None = None,
     severity: str | None = None,
     status: str | None = None,
+    assignee: str | None = None,
 ) -> str:
-    """Update an existing Datadog incident.
+    """Update an existing Datadog incident's title, severity, status, or commander.
+
+    Use to progress an incident through its lifecycle. At least one field must be
+    provided. Typical flow: create with status 'active', set 'stable' once contained,
+    set 'resolved' once the fix is confirmed. To close an incident always use
+    status='resolved' here — do not use dd_incidents_delete for real incidents.
 
     Args:
-        incident_id: The incident ID to update.
+        incident_id: The incident UUID to update.
         title: New title (optional).
-        severity: New severity (optional).
-        status: New status like 'active', 'stable', 'resolved' (optional).
+        severity: New severity — SEV-1 through SEV-5 (optional).
+        status: 'active', 'stable', or 'resolved' (optional).
+        assignee: Assignee name (e.g., 'muhammad', 'willem', 'jeong') to set as incident commander (optional).
 
     Returns JSON of the updated incident.
     """
-    from datadog_api_client.v2.model.incident_update_attributes import (
-        IncidentUpdateAttributes,
-    )
-    from datadog_api_client.v2.model.incident_update_data import IncidentUpdateData
-    from datadog_api_client.v2.model.incident_update_request import (
-        IncidentUpdateRequest,
-    )
+    from puppy_kit.commands.incident import update_incident
 
-    attrs_kwargs: dict[str, Any] = {}
+    args = ["--format", "json", incident_id]
     if title is not None:
-        attrs_kwargs["title"] = title
+        args += ["--title", title]
     if severity is not None:
-        attrs_kwargs["fields"] = {
-            "severity": {"type": "dropdown", "value": severity},
-        }
-
-    body = IncidentUpdateRequest(
-        data=IncidentUpdateData(
-            id=incident_id,
-            type="incidents",
-            attributes=IncidentUpdateAttributes(**attrs_kwargs),
-        )
-    )
-    with _get_client() as client:
-        response = client.incidents.update_incident(incident_id=incident_id, body=body)
-        inc = response.data
-
-    # "state" is the Datadog custom-field key for incident status.
-    # IncidentUpdateAttributes has no status/state attribute, so we must
-    # update it via a raw PATCH to the fields endpoint.
+        args += ["--severity", severity]
     if status is not None:
-        config = load_config()
-        base_url = f"https://{config.site}/api/v2/incidents"
-        headers = {
-            "DD-API-KEY": config.api_key,
-            "DD-APPLICATION-KEY": config.app_key,
-            "Content-Type": "application/json",
-        }
-        patch_body = {
-            "data": {
-                "type": "incidents",
-                "id": inc.id,
-                "attributes": {"fields": {"state": {"type": "dropdown", "value": status}}},
-            }
-        }
-        _requests.patch(f"{base_url}/{inc.id}", headers=headers, json=patch_body, timeout=30).raise_for_status()
-
-    return _to_json(_extract_incident(inc))
+        args += ["--status", status]
+    if assignee is not None:
+        args += ["--assignee", assignee]
+    result = CliRunner().invoke(update_incident, args, catch_exceptions=False)
+    return result.output
 
 
 @mcp.tool()
 def dd_incidents_delete(incident_id: str) -> str:
-    """Delete a Datadog incident.
+    """Permanently delete a Datadog incident. Use only to remove erroneous or duplicate records.
+
+    This is irreversible. For closing a real incident, use dd_incidents_update with
+    status='resolved' instead — that preserves the incident history. Only call this
+    when an incident was created by mistake and should not exist at all.
 
     Args:
-        incident_id: The incident ID to delete.
+        incident_id: The incident UUID to delete.
 
     Returns confirmation message.
     """
-    with _get_client() as client:
-        client.incidents.delete_incident(incident_id=incident_id)
-    return _to_json({"status": "deleted", "incident_id": incident_id})
+    from puppy_kit.commands.incident import delete_incident
+
+    result = CliRunner().invoke(delete_incident, [incident_id, "--confirm"], catch_exceptions=False)
+    return result.output
 
 
 # ---------------------------------------------------------------------------
@@ -366,74 +229,38 @@ def dd_incidents_delete(incident_id: str) -> str:
 
 @mcp.tool()
 def dd_downtimes_list() -> str:
-    """List all Datadog downtimes.
+    """List all Datadog downtimes (scheduled monitor silences), both active and disabled.
+
+    Use this before filing a false-positive incident to check whether the affected
+    monitor or scope is already silenced, or before creating a new downtime to avoid
+    duplicates. Returns id, scope, monitor_id, message, and disabled flag.
 
     Returns JSON array of downtime summaries.
     """
-    with _get_client() as client:
-        downtimes = client.downtimes.list_downtimes()
-    results = []
-    for dt in downtimes:
-        results.append(
-            {
-                "id": getattr(dt, "id", None),
-                "scope": getattr(dt, "scope", []),
-                "message": getattr(dt, "message", ""),
-                "monitor_id": getattr(dt, "monitor_id", None),
-                "disabled": getattr(dt, "disabled", False),
-            }
-        )
-    return _to_json(results)
+    from puppy_kit.commands.downtime import list_downtimes
 
-
-@mcp.tool()
-def dd_downtimes_create(
-    scope: str,
-    message: str = "",
-    monitor_id: int | None = None,
-) -> str:
-    """Create a Datadog downtime (mute monitors).
-
-    Args:
-        scope: Downtime scope (e.g. 'env:production', 'host:web-01').
-        message: Reason for the downtime.
-        monitor_id: Specific monitor ID to mute (optional).
-
-    Returns JSON of the created downtime.
-    """
-    from datadog_api_client.v1.model.downtime import Downtime
-
-    body_kwargs: dict[str, Any] = {
-        "scope": [scope],
-        "message": message,
-    }
-    if monitor_id is not None:
-        body_kwargs["monitor_id"] = monitor_id
-
-    body = Downtime(**body_kwargs)
-    with _get_client() as client:
-        result = client.downtimes.create_downtime(body=body)
-    return _to_json(
-        {
-            "id": getattr(result, "id", None),
-            "scope": getattr(result, "scope", []),
-            "message": getattr(result, "message", ""),
-        }
-    )
+    result = CliRunner().invoke(list_downtimes, ["--format", "json"], catch_exceptions=False)
+    return result.output
 
 
 @mcp.tool()
 def dd_downtimes_cancel(downtime_id: int) -> str:
-    """Cancel a Datadog downtime.
+    """Cancel an active Datadog downtime so monitors resume alerting.
+
+    Use when maintenance or a known outage window is complete and normal alerting
+    should be restored. Retrieve the downtime ID first from dd_downtimes_list.
 
     Args:
         downtime_id: The downtime ID to cancel.
 
     Returns confirmation message.
     """
-    with _get_client() as client:
-        client.downtimes.cancel_downtime(downtime_id=downtime_id)
-    return _to_json({"status": "canceled", "downtime_id": downtime_id})
+    from puppy_kit.commands.downtime import delete_downtime_cmd
+
+    result = CliRunner().invoke(
+        delete_downtime_cmd, [str(downtime_id), "--confirm"], catch_exceptions=False
+    )
+    return result.output
 
 
 # ---------------------------------------------------------------------------
@@ -444,49 +271,40 @@ def dd_downtimes_cancel(downtime_id: int) -> str:
 @mcp.tool()
 def dd_logs_search(
     query: str,
-    from_time: str = "now-15m",
+    from_time: str = "15m",
     to_time: str = "now",
     limit: int = 25,
 ) -> str:
-    """Search Datadog logs.
+    """Search Datadog logs using Datadog query syntax.
+
+    Use during incident investigation to find error patterns, stack traces, or service
+    failures correlated with an incident timeline. Narrow the time window to the period
+    of impact for the most relevant results. Defaults to the last 15 minutes.
+    Example queries: 'service:api status:error', 'env:prod @http.status_code:500'.
 
     Args:
-        query: Log search query (Datadog syntax, e.g. 'service:api status:error').
-        from_time: Start time (e.g. 'now-1h', 'now-15m').
-        to_time: End time (e.g. 'now').
-        limit: Maximum number of log entries to return (1-1000).
+        query: Datadog log search query using facet syntax.
+        from_time: Relative duration like '15m', '1h', or '7d', or an ISO timestamp.
+        to_time: 'now', a relative duration, or an ISO timestamp.
+        limit: Maximum log entries to return (1-1000).
 
-    Returns JSON array of log entries.
+    Returns JSON array of log entries with timestamp, service, status, and message.
     """
-    from datadog_api_client.v2.model.logs_list_request import LogsListRequest
-    from datadog_api_client.v2.model.logs_list_request_page import LogsListRequestPage
-    from datadog_api_client.v2.model.logs_query_filter import LogsQueryFilter
+    from puppy_kit.commands.logs import search_logs
 
-    body = LogsListRequest(
-        filter=LogsQueryFilter(
-            query=query,
-            _from=from_time,
-            to=to_time,
-        ),
-        page=LogsListRequestPage(limit=limit),
-    )
-    with _get_client() as client:
-        response = client.logs.list_logs(body=body)
-
-    logs = response.data if response.data else []
-    results = []
-    for log in logs:
-        attrs = getattr(log, "attributes", log)
-        results.append(
-            {
-                "id": getattr(log, "id", ""),
-                "timestamp": str(getattr(attrs, "timestamp", "")),
-                "service": getattr(attrs, "service", ""),
-                "status": getattr(attrs, "status", ""),
-                "message": getattr(attrs, "message", ""),
-            }
-        )
-    return _to_json(results)
+    args = [
+        query,
+        "--format",
+        "json",
+        "--from",
+        from_time,
+        "--to",
+        to_time,
+        "--limit",
+        str(limit),
+    ]
+    result = CliRunner().invoke(search_logs, args, catch_exceptions=False)
+    return result.output
 
 
 # ---------------------------------------------------------------------------
@@ -502,39 +320,30 @@ def dd_metrics_query(
 ) -> str:
     """Query Datadog metrics over a time range.
 
+    Use during incident investigation to check CPU, memory, error rates, latency, or
+    any custom metric that may explain the symptoms. Defaults to the last hour.
+    Example queries: 'avg:system.cpu.user{env:prod}', 'sum:trace.web.request.errors{*}'.
+
     Args:
-        query: Metric query string (e.g. 'avg:system.cpu.idle{*}').
-        from_time: Start time — relative like '1h', '30m', '7d' or epoch seconds.
-        to_time: End time — 'now' or epoch seconds.
+        query: Datadog metric query string.
+        from_time: Relative duration like '1h', '30m', '7d', or an ISO timestamp.
+        to_time: 'now', a relative duration, or an ISO timestamp.
 
     Returns JSON with query metadata and time series data points.
     """
-    from puppy_kit.utils.time import parse_time_range
+    from puppy_kit.commands.metric import query_metric
 
-    from_ts, to_ts = parse_time_range(from_time)
-    if to_time != "now":
-        to_ts = int(to_time)
-
-    with _get_client() as client:
-        result = client.metrics.query_metrics(
-            _from=from_ts,
-            to=to_ts,
-            query=query,
-        )
-    series_list = getattr(result, "series", []) or []
-    output = []
-    for series in series_list:
-        output.append(
-            {
-                "metric": getattr(series, "metric", ""),
-                "scope": getattr(series, "scope", ""),
-                "pointlist": [
-                    {"timestamp": p[0], "value": p[1]}
-                    for p in (getattr(series, "pointlist", []) or [])
-                ],
-            }
-        )
-    return _to_json({"query": query, "series": output})
+    args = [
+        query,
+        "--format",
+        "json",
+        "--from",
+        from_time,
+        "--to",
+        to_time,
+    ]
+    result = CliRunner().invoke(query_metric, args, catch_exceptions=False)
+    return result.output
 
 
 # ---------------------------------------------------------------------------
@@ -543,83 +352,38 @@ def dd_metrics_query(
 
 
 @mcp.tool()
-def dd_events_create(
-    title: str,
-    text: str,
-    tags: list[str] | None = None,
-    alert_type: str = "info",
-) -> str:
-    """Create a Datadog event.
-
-    Args:
-        title: Event title.
-        text: Event body (supports markdown).
-        tags: Event tags.
-        alert_type: One of 'info', 'warning', 'error', 'success'.
-
-    Returns JSON of the created event.
-    """
-    from datadog_api_client.v1.model.event_create_request import EventCreateRequest
-
-    body = EventCreateRequest(
-        title=title,
-        text=text,
-        tags=tags or [],
-        alert_type=alert_type,
-    )
-    with _get_client() as client:
-        result = client.events.create_event(body=body)
-    event = getattr(result, "event", result)
-    return _to_json(
-        {
-            "id": getattr(event, "id", None),
-            "title": getattr(event, "title", ""),
-            "status": "created",
-        }
-    )
-
-
-@mcp.tool()
 def dd_events_search(
-    query: str,
-    from_time: str = "now-1h",
+    from_time: str = "1h",
     to_time: str = "now",
     limit: int = 25,
 ) -> str:
-    """Search Datadog events.
+    """List Datadog events such as deploys, config changes, restarts, and alerts.
+
+    Use during incident investigation to identify recent changes that may have triggered
+    the issue — deployments, scaling events, or config pushes in the impact window are
+    common root causes. Defaults to the last hour.
 
     Args:
-        query: Event search query.
-        from_time: Start time.
-        to_time: End time.
-        limit: Max results.
+        from_time: Relative duration like '1h', '30m', or '7d', or an ISO timestamp.
+        to_time: 'now', a relative duration, or an ISO timestamp.
+        limit: Max results to return.
 
-    Returns JSON array of event summaries.
+    Returns JSON array of event summaries with title, text, date, and tags.
     """
-    from puppy_kit.utils.time import parse_time_range
+    from puppy_kit.commands.event import list_events
 
-    from_ts, to_ts = parse_time_range(from_time)
-    if to_time != "now":
-        to_ts = int(to_time)
-
-    with _get_client() as client:
-        result = client.events.list_events(
-            start=from_ts,
-            end=to_ts,
-        )
-    events = getattr(result, "events", []) or []
-    output = []
-    for ev in events[:limit]:
-        output.append(
-            {
-                "id": getattr(ev, "id", None),
-                "title": getattr(ev, "title", ""),
-                "text": getattr(ev, "text", ""),
-                "date_happened": str(getattr(ev, "date_happened", "")),
-                "tags": getattr(ev, "tags", []),
-            }
-        )
-    return _to_json(output)
+    args = [
+        "--format",
+        "json",
+        "--from",
+        from_time,
+        "--to",
+        to_time,
+        "--limit",
+        str(limit),
+    ]
+    result = CliRunner().invoke(list_events, args, catch_exceptions=False)
+    return result.output
 
 
 # ---------------------------------------------------------------------------
@@ -631,133 +395,37 @@ def dd_events_search(
 def dd_dashboards_list() -> str:
     """List all Datadog dashboards.
 
-    Returns JSON array of dashboard summaries with id, title, layout_type.
+    Use to find a dashboard ID when you need to locate a relevant dashboard during
+    an incident — e.g. a service health or infrastructure overview board. Pass the
+    ID to dd_dashboards_get to retrieve its full details.
+
+    Returns JSON array of dashboard summaries with id, title, and layout_type.
     """
-    with _get_client() as client:
-        result = client.dashboards.list_dashboards()
-    dashboards = getattr(result, "dashboards", []) or []
-    output = []
-    for d in dashboards:
-        output.append(
-            {
-                "id": getattr(d, "id", ""),
-                "title": getattr(d, "title", ""),
-                "layout_type": str(getattr(d, "layout_type", "")),
-            }
-        )
-    return _to_json(output)
+    from puppy_kit.commands.dashboard import list_dashboards
+
+    result = CliRunner().invoke(list_dashboards, ["--format", "json"], catch_exceptions=False)
+    return result.output
 
 
 @mcp.tool()
 def dd_dashboards_get(dashboard_id: str) -> str:
-    """Get full details of a Datadog dashboard.
+    """Get full details of a Datadog dashboard by ID.
+
+    Use to retrieve the dashboard title, description, and widget count — typically
+    to confirm you have the right board before sharing it as incident context.
+    Get the dashboard ID first from dd_dashboards_list.
 
     Args:
         dashboard_id: The dashboard ID to retrieve.
 
-    Returns JSON with dashboard details.
+    Returns JSON with id, title, layout_type, description, and widget_count.
     """
-    with _get_client() as client:
-        result = client.dashboards.get_dashboard(dashboard_id=dashboard_id)
-    return _to_json(
-        {
-            "id": getattr(result, "id", ""),
-            "title": getattr(result, "title", ""),
-            "layout_type": str(getattr(result, "layout_type", "")),
-            "widget_count": len(getattr(result, "widgets", []) or []),
-            "description": getattr(result, "description", ""),
-        }
+    from puppy_kit.commands.dashboard import get_dashboard
+
+    result = CliRunner().invoke(
+        get_dashboard, [dashboard_id, "--format", "json"], catch_exceptions=False
     )
-
-
-# ---------------------------------------------------------------------------
-# Hosts
-# ---------------------------------------------------------------------------
-
-
-@mcp.tool()
-def dd_hosts_list(
-    filter_query: str | None = None,
-    count: int = 100,
-) -> str:
-    """List Datadog hosts.
-
-    Args:
-        filter_query: Filter query string (e.g. 'env:production').
-        count: Number of hosts to return.
-
-    Returns JSON array of host summaries.
-    """
-    kwargs: dict[str, Any] = {"count": count}
-    if filter_query:
-        kwargs["filter"] = filter_query
-
-    with _get_client() as client:
-        result = client.hosts.list_hosts(**kwargs)
-    host_list = getattr(result, "host_list", []) or []
-    output = []
-    for h in host_list:
-        output.append(
-            {
-                "name": getattr(h, "name", ""),
-                "id": getattr(h, "id", None),
-                "apps": getattr(h, "apps", []),
-                "tags_by_source": getattr(h, "tags_by_source", {}),
-            }
-        )
-    return _to_json(output)
-
-
-# ---------------------------------------------------------------------------
-# SLOs
-# ---------------------------------------------------------------------------
-
-
-@mcp.tool()
-def dd_slos_list() -> str:
-    """List all Datadog SLOs.
-
-    Returns JSON array of SLO summaries.
-    """
-    with _get_client() as client:
-        result = client.slos.list_slos()
-    slos = getattr(result, "data", []) or []
-    output = []
-    for s in slos:
-        output.append(
-            {
-                "id": getattr(s, "id", ""),
-                "name": getattr(s, "name", ""),
-                "type": str(getattr(s, "type", "")),
-                "target_threshold": getattr(s, "target_threshold", None),
-                "tags": getattr(s, "tags", []),
-            }
-        )
-    return _to_json(output)
-
-
-@mcp.tool()
-def dd_slos_get(slo_id: str) -> str:
-    """Get details of a specific Datadog SLO.
-
-    Args:
-        slo_id: The SLO ID to retrieve.
-
-    Returns JSON with SLO details.
-    """
-    with _get_client() as client:
-        result = client.slos.get_slo(slo_id=slo_id)
-    slo = getattr(result, "data", result)
-    return _to_json(
-        {
-            "id": getattr(slo, "id", ""),
-            "name": getattr(slo, "name", ""),
-            "type": str(getattr(slo, "type", "")),
-            "description": getattr(slo, "description", ""),
-            "target_threshold": getattr(slo, "target_threshold", None),
-            "tags": getattr(slo, "tags", []),
-        }
-    )
+    return result.output
 
 
 # ---------------------------------------------------------------------------

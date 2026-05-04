@@ -77,7 +77,7 @@ def list_users(limit, page_size, filter_text, filter_status, sort, all_pages, fo
             if filter_status:
                 kwargs["filter_status"] = filter_status
 
-            response = client.users.list_users(**kwargs)
+            response = client.users.list_users(**kwargs)  # ty:ignore[invalid-argument-type]
             page_users = list(response.data or [])
             users_data.extend(page_users)
 
@@ -153,7 +153,7 @@ def get_user(user_id, format):
             "disabled": getattr(attrs, "disabled", None),
             "created_at": str(getattr(attrs, "created_at", None)),
         }
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
     else:
         console.print(f"\n[bold cyan]User {user_id_value}[/bold cyan]")
         console.print(f"[bold]Name:[/bold] {getattr(attrs, 'name', 'N/A')}")
@@ -201,7 +201,7 @@ def invite_user(email, role, format):
 
         # Now send invitation
         invitation_data = UserInvitationData(
-            type="user_invitations",
+            type="user_invitations",  # ty:ignore[invalid-argument-type]
             relationships=UserInvitationRelationships(
                 user=RelationshipToUser(
                     data=RelationshipToUserData(
@@ -220,7 +220,7 @@ def invite_user(email, role, format):
             "user_id": new_user.id,
             "status": "invitation_sent",
         }
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
     else:
         console.print(f"[green]Invitation sent to {email}[/green]")
         console.print(f"[dim]User ID: {new_user.id}[/dim]")

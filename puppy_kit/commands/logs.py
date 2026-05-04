@@ -28,7 +28,7 @@ def _format_log_entry(log):
     attrs = log.attributes
     nested = getattr(attrs, "attributes", None) or {}
     if hasattr(nested, "to_dict"):
-        nested = nested.to_dict()
+        nested = nested.to_dict()  # ty:ignore[call-non-callable]
     elif not isinstance(nested, dict):
         nested = {}
     return {
@@ -128,7 +128,7 @@ def search_logs(query, from_time, to_time, service, status, limit, format, verbo
     }
 
     with console.status("[cyan]Searching logs...[/cyan]"):
-        response = client.logs.list_logs(body=body)
+        response = client.logs.list_logs(body=body)  # ty:ignore[invalid-argument-type]
 
     log_entries = response.data if response.data else []
 
@@ -180,7 +180,7 @@ def tail_logs(query, lines, service, follow, format, verbose):
             "sort": "-timestamp",
         }
 
-        response = client.logs.list_logs(body=body)
+        response = client.logs.list_logs(body=body)  # ty:ignore[invalid-argument-type]
         return response.data if response.data else []
 
     if follow:
@@ -297,7 +297,7 @@ def query_logs(query, from_time, to_time, group_by, metric, format):
     }
 
     with console.status("[cyan]Computing log analytics...[/cyan]"):
-        response = client.logs.aggregate_logs(body=request_dict)
+        response = client.logs.aggregate_logs(body=request_dict)  # ty:ignore[invalid-argument-type]
 
     buckets = response.data.buckets if response.data else []
 
@@ -359,7 +359,7 @@ def trace_logs(trace_id, format):
     }
 
     with console.status(f"[cyan]Searching logs for trace {trace_id}...[/cyan]"):
-        response = client.logs.list_logs(body=body)
+        response = client.logs.list_logs(body=body)  # ty:ignore[invalid-argument-type]
 
     log_entries = response.data if response.data else []
 

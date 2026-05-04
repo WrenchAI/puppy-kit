@@ -45,7 +45,7 @@ def list_events(from_time, to_time, sources, priority, tags, limit, format):
         if tags:
             kwargs["tags"] = tags
 
-        result = client.events.list_events(**kwargs)
+        result = client.events.list_events(**kwargs)  # ty:ignore[invalid-argument-type]
 
     if not result.events:
         console.print("[yellow]No events found[/yellow]")
@@ -123,7 +123,10 @@ def post_event(title, text, tags, priority):
     tag_list = tags.split(",") if tags else None
 
     event_req = EventCreateRequest(
-        title=title, text=text or title, tags=tag_list, priority=priority
+        title=title,
+        text=text or title,
+        tags=tag_list,  # ty: ignore[invalid-argument-type]
+        priority=priority,
     )
 
     with console.status("[cyan]Posting event...[/cyan]"):

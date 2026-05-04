@@ -23,7 +23,7 @@ console = Console()
 
 def _format_api_timestamp(ts: int) -> str:
     """Format a Unix timestamp for the Spans API in UTC without microseconds."""
-    return datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")  # ty:ignore[deprecated]
 
 
 def _format_datetime(dt: Any) -> str:
@@ -262,8 +262,8 @@ def traces(
 
     # Parse time range to UTC ISO 8601
     from_ts, to_ts = parse_time_range(from_)
-    from_iso = datetime.utcfromtimestamp(from_ts).strftime("%Y-%m-%dT%H:%M:%SZ")
-    to_iso = datetime.utcfromtimestamp(to_ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+    from_iso = datetime.utcfromtimestamp(from_ts).strftime("%Y-%m-%dT%H:%M:%SZ")  # ty:ignore[deprecated]
+    to_iso = datetime.utcfromtimestamp(to_ts).strftime("%Y-%m-%dT%H:%M:%SZ")  # ty:ignore[deprecated]
 
     # Build the LLM Obs Export API request body
     filter_block = {
@@ -275,7 +275,7 @@ def traces(
         filter_block["span_kind"] = span_kind
 
     if ml_app:
-        filter_block["tags"] = {"ml_app": ml_app}
+        filter_block["tags"] = {"ml_app": ml_app}  # ty:ignore[invalid-assignment]
 
     payload = {
         "data": {

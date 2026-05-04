@@ -183,10 +183,10 @@ def create_downtime_cmd(scope, start_time, end_time, message, monitor_id, file_d
         kwargs = {"scope": [scope]}
 
         if start_time:
-            kwargs["start"] = parse_downtime_time(start_time)
+            kwargs["start"] = parse_downtime_time(start_time)  # ty:ignore[invalid-assignment]
 
         if end_time:
-            kwargs["end"] = parse_downtime_time(end_time)
+            kwargs["end"] = parse_downtime_time(end_time)  # ty:ignore[invalid-assignment]
 
         if message:
             kwargs["message"] = message
@@ -194,7 +194,7 @@ def create_downtime_cmd(scope, start_time, end_time, message, monitor_id, file_d
         if monitor_id is not None:
             kwargs["monitor_id"] = monitor_id
 
-        downtime_body = Downtime(**kwargs)
+        downtime_body = Downtime(**kwargs)  # ty:ignore[invalid-argument-type]
 
     client = get_datadog_client()
 
@@ -298,7 +298,7 @@ def cancel_by_scope_cmd(scope, confirmed, fmt):
         result = client.downtimes.cancel_downtimes_by_scope(body=body)
 
     if fmt == "json":
-        click.echo(json.dumps(json_list_response({"cancelled_ids": result.cancelled_ids})))
+        click.echo(json.dumps(json_list_response({"cancelled_ids": result.cancelled_ids})))  # ty:ignore[invalid-argument-type]
     else:
         count = len(result.cancelled_ids) if result.cancelled_ids else 0
         console.print(f"[green]{count} downtime(s) cancelled for scope '{scope}'[/green]")

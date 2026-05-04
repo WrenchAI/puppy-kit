@@ -73,7 +73,7 @@ def handle_api_error(func):
                             "Try reducing --limit, remove filters, or retry later.",
                         )
                         sys.exit(RATE_LIMITED)
-                elif e.status >= 500:
+                elif e.status >= 500:  # ty:ignore[unsupported-operator]
                     # Server error - retry
                     if attempt < retries - 1:
                         console.print(
@@ -84,7 +84,7 @@ def handle_api_error(func):
                     else:
                         emit_error(
                             "SERVER_ERROR",
-                            e.status,
+                            e.status,  # ty:ignore[invalid-argument-type]
                             "Datadog API server error. The service may be experiencing issues.",
                             "Check https://status.datadoghq.com for incidents. Try again later.",
                         )
@@ -98,8 +98,8 @@ def handle_api_error(func):
                     )
                     sys.exit(VALIDATION_ERROR)
                 else:
-                    emit_error("API_ERROR", e.status, f"API error: {e}")
-                    sys.exit(exit_code_for_status(e.status))
+                    emit_error("API_ERROR", e.status, f"API error: {e}")  # ty:ignore[invalid-argument-type]
+                    sys.exit(exit_code_for_status(e.status))  # ty:ignore[invalid-argument-type]
             except Exception as e:
                 emit_error("UNEXPECTED_ERROR", 0, f"Unexpected error: {e}")
                 sys.exit(GENERAL_ERROR)
