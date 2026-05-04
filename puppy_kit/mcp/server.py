@@ -128,21 +128,22 @@ def dd_incidents_get(incident_id: str) -> str:
 @mcp.tool()
 def dd_incidents_create(
     title: str,
-    severity: str,
-    team: str,
+    severity: str | None = None,
+    team: str | None = None,
     customer_impacted: bool = False,
     assignee: str | None = None,
 ) -> str:
     """Create a new Datadog incident when a confirmed issue needs to be tracked.
 
     Use this when a new problem is detected and requires an incident record. Requires
-    a descriptive title, severity, and owning team. Returns the created incident ID
-    which can then be passed to dd_incidents_update to set status and add detail.
+    a descriptive title. Severity and team are optional and can be set via dd_incidents_update
+    after creation. Returns the created incident ID which can then be passed to
+    dd_incidents_update to set status and add detail.
 
     Args:
         title: Short descriptive title of the issue.
-        severity: SEV-1 (critical/outage) through SEV-5 (cosmetic/low impact).
-        team: Team name responsible for this incident.
+        severity: SEV-1 (critical/outage) through SEV-5 (cosmetic/low impact) (optional).
+        team: Team name responsible for this incident (optional).
         customer_impacted: Set True if customers are experiencing impact.
         assignee: Assignee user UUID to set as incident commander (optional).
 
@@ -150,16 +151,11 @@ def dd_incidents_create(
     """
     from puppy_kit.commands.incident import create_incident
 
-    args = [
-        "--format",
-        "json",
-        "--title",
-        title,
-        "--severity",
-        severity,
-        "--team",
-        team,
-    ]
+    args = ["--format", "json", "--title", title]
+    if severity is not None:
+        args += ["--severity", severity]
+    if team is not None:
+        args += ["--team", team]
     if assignee:
         args += ["--assignee", assignee]
     if customer_impacted:
@@ -174,8 +170,9 @@ def dd_incidents_update(
     title: str | None = None,
     severity: str | None = None,
     status: str | None = None,
+    assignee: str | None = None,
 ) -> str:
-    """Update an existing Datadog incident's title, severity, or status.
+    """Update an existing Datadog incident's title, severity, status, or commander.
 
     Use to progress an incident through its lifecycle. At least one field must be
     provided. Typical flow: create with status 'active', set 'stable' once contained,
@@ -187,6 +184,7 @@ def dd_incidents_update(
         title: New title (optional).
         severity: New severity — SEV-1 through SEV-5 (optional).
         status: 'active', 'stable', or 'resolved' (optional).
+        assignee: Assignee name (e.g., 'muhammad', 'willem', 'jeong') to set as incident commander (optional).
 
     Returns JSON of the updated incident.
     """
@@ -199,6 +197,8 @@ def dd_incidents_update(
         args += ["--severity", severity]
     if status is not None:
         args += ["--status", status]
+    if assignee is not None:
+        args += ["--assignee", assignee]
     result = CliRunner().invoke(update_incident, args, catch_exceptions=False)
     return result.output
 

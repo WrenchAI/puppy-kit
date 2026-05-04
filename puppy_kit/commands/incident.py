@@ -343,10 +343,11 @@ def get_incident(incident_id, format):
 @click.option(
     "--severity",
     type=click.Choice(SEVERITY_CHOICES),
-    required=True,
+    required=False,
+    default=None,
     help="Incident severity",
 )
-@click.option("--team", required=True, help="Team name for the 'teams' autocomplete field")
+@click.option("--team", default=None, help="Team name for the 'teams' autocomplete field")
 @click.option("--assignee", default=None, help="Assignee user ID (UUID) to set as commander")
 @click.option(
     "--customer-impacted",
@@ -374,10 +375,11 @@ def create_incident(title, severity, team, assignee, customer_impacted, format):
 
     client = get_datadog_client()
 
-    fields = {
-        "severity": {"type": "dropdown", "value": severity},
-        "teams": {"type": "autocomplete", "value": [team]},
-    }
+    fields: dict = {}
+    if severity is not None:
+        fields["severity"] = {"type": "dropdown", "value": severity}
+    if team is not None:
+        fields["teams"] = {"type": "autocomplete", "value": [team]}
 
     relationships = None
     if assignee:
