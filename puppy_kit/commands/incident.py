@@ -204,6 +204,8 @@ def list_incidents(
                     if created_at is not None and created_at >= cutoff:
                         filtered_page.append(inc)
                 all_incidents.extend(filtered_page)
+                if len(all_incidents) >= page_size:
+                    break
 
                 last_incident = incidents[-1]
                 last_attrs = getattr(last_incident, "attributes", None)
@@ -212,6 +214,8 @@ def list_incidents(
                     break
             else:
                 all_incidents.extend(incidents)
+                if len(all_incidents) >= page_size:
+                    break
 
             pagination = getattr(getattr(response, "meta", None), "pagination", None)
             next_offset = getattr(pagination, "next_offset", None)
@@ -221,6 +225,8 @@ def list_incidents(
                 break
 
             page_offset = int(next_offset)
+
+    all_incidents = all_incidents[:page_size]
 
     if format == "json":
         output = []
@@ -343,10 +349,17 @@ def get_incident(incident_id, format):
 @click.option("--team", required=True, help="Team name for the 'teams' autocomplete field")
 @click.option("--assignee", default=None, help="Assignee user ID (UUID) to set as commander")
 @click.option(
+    "--customer-impacted",
+    "customer_impacted",
+    is_flag=True,
+    default=False,
+    help="Set if customers are experiencing impact",
+)
+@click.option(
     "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
 )
 @handle_api_error
-def create_incident(title, severity, team, assignee, format):
+def create_incident(title, severity, team, assignee, customer_impacted, format):
     """Create a new incident."""
     from datadog_api_client.v2.model.incident_create_request import IncidentCreateRequest
     from datadog_api_client.v2.model.incident_create_data import IncidentCreateData
@@ -378,7 +391,7 @@ def create_incident(title, severity, team, assignee, format):
         type="incidents",
         attributes=IncidentCreateAttributes(
             title=title,
-            customer_impacted=False,
+            customer_impacted=customer_impacted,
             fields=fields,
         ),
     )
@@ -407,9 +420,7 @@ def create_incident(title, severity, team, assignee, format):
         console.print(
             f"[bold]Severity:[/bold] {_stringify_enum(_incident_severity(attrs), severity or 'unknown')}"
         )
-        console.print(
-            f"[bold]Status:[/bold] {_stringify_enum(_incident_state(attrs), 'unknown')}"
-        )
+        console.print(f"[bold]Status:[/bold] {_stringify_enum(_incident_state(attrs), 'unknown')}")
 
 
 @incident.command(name="update")

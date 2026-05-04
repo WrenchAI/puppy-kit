@@ -28,18 +28,16 @@ mcp = FastMCP(
 
 @mcp.tool()
 def dd_monitors_list(
-    name: str | None = None,
     tags: str | None = None,
     page_size: int = 100,
 ) -> str:
-    """List Datadog monitors with optional name and tag filters.
+    """List Datadog monitors with optional tag and state filters.
 
     Use this to survey monitor health, find monitors in Alert or Warn state, or
     locate a specific monitor by name before investigating. Returns id, name, type,
     overall_state, query, message, and tags for each monitor.
 
     Args:
-        name: Filter by monitor name substring.
         tags: Filter by monitor tags (comma-separated).
         page_size: Number of monitors to return.
 
@@ -48,8 +46,6 @@ def dd_monitors_list(
     from puppy_kit.commands.monitor import list_monitors
 
     args = ["--format", "json", "--limit", str(page_size)]
-    if name:
-        args += ["--name", name]
     if tags:
         args += ["--tags", tags]
     result = CliRunner().invoke(list_monitors, args, catch_exceptions=False)
@@ -166,6 +162,8 @@ def dd_incidents_create(
     ]
     if assignee:
         args += ["--assignee", assignee]
+    if customer_impacted:
+        args.append("--customer-impacted")
     result = CliRunner().invoke(create_incident, args, catch_exceptions=False)
     return result.output
 
@@ -231,7 +229,7 @@ def dd_incidents_delete(incident_id: str) -> str:
 
 @mcp.tool()
 def dd_downtimes_list() -> str:
-    """List all active Datadog downtimes (scheduled monitor silences).
+    """List all Datadog downtimes (scheduled monitor silences), both active and disabled.
 
     Use this before filing a false-positive incident to check whether the affected
     monitor or scope is already silenced, or before creating a new downtime to avoid
@@ -273,7 +271,7 @@ def dd_downtimes_cancel(downtime_id: int) -> str:
 @mcp.tool()
 def dd_logs_search(
     query: str,
-    from_time: str = "now-15m",
+    from_time: str = "15m",
     to_time: str = "now",
     limit: int = 25,
 ) -> str:
@@ -286,8 +284,8 @@ def dd_logs_search(
 
     Args:
         query: Datadog log search query using facet syntax.
-        from_time: Start of search window (e.g. 'now-1h', 'now-15m').
-        to_time: End of search window (e.g. 'now').
+        from_time: Relative duration like '15m', '1h', or '7d', or an ISO timestamp.
+        to_time: 'now', a relative duration, or an ISO timestamp.
         limit: Maximum log entries to return (1-1000).
 
     Returns JSON array of log entries with timestamp, service, status, and message.
@@ -328,8 +326,8 @@ def dd_metrics_query(
 
     Args:
         query: Datadog metric query string.
-        from_time: Relative duration like '1h', '30m', '7d' or epoch seconds.
-        to_time: 'now' or epoch seconds.
+        from_time: Relative duration like '1h', '30m', '7d', or an ISO timestamp.
+        to_time: 'now', a relative duration, or an ISO timestamp.
 
     Returns JSON with query metadata and time series data points.
     """
@@ -355,21 +353,19 @@ def dd_metrics_query(
 
 @mcp.tool()
 def dd_events_search(
-    query: str,
-    from_time: str = "now-1h",
+    from_time: str = "1h",
     to_time: str = "now",
     limit: int = 25,
 ) -> str:
-    """Search Datadog events such as deploys, config changes, restarts, and alerts.
+    """List Datadog events such as deploys, config changes, restarts, and alerts.
 
     Use during incident investigation to identify recent changes that may have triggered
     the issue — deployments, scaling events, or config pushes in the impact window are
     common root causes. Defaults to the last hour.
 
     Args:
-        query: Event search query (e.g. 'deploy', 'source:github').
-        from_time: Start of search window (e.g. 'now-2h').
-        to_time: End of search window (e.g. 'now').
+        from_time: Relative duration like '1h', '30m', or '7d', or an ISO timestamp.
+        to_time: 'now', a relative duration, or an ISO timestamp.
         limit: Max results to return.
 
     Returns JSON array of event summaries with title, text, date, and tags.
