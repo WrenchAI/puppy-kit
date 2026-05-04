@@ -125,7 +125,7 @@ def summary(from_date, to_date, format):
                 response, "ingested_events_bytes_agg_sum", None
             ),
         }
-        click.echo(json.dumps(json_list_response(data)))
+        click.echo(json.dumps(json_list_response(data)))  # ty:ignore[invalid-argument-type]
     else:
         table = Table(title=f"Usage Summary ({start_d} to {end_d})")
         table.add_column("Metric", style="cyan")

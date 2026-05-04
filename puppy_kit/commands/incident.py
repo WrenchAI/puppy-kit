@@ -184,7 +184,7 @@ def list_incidents(
         while page_offset is not None:
             response = client.incidents.search_incidents(
                 search_query,
-                sort=sort,
+                sort=sort,  # ty:ignore[invalid-argument-type]
                 page_size=effective_page_size,
                 page_offset=page_offset,
             )
@@ -308,7 +308,7 @@ def get_incident(incident_id, format):
             "created": _stringify_datetime(getattr(attrs, "created", "")),
             "modified": _stringify_datetime(getattr(attrs, "modified", "")),
         }
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
     else:
         console.print(f"\n[bold cyan]Incident {inc.id}[/bold cyan]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -385,7 +385,7 @@ def create_incident(title, severity, team, assignee, customer_impacted, format):
     if assignee:
         relationships = IncidentCreateRelationships(
             commander_user=NullableRelationshipToUser(
-                data=NullableRelationshipToUserData(type="users", id=assignee)
+                data=NullableRelationshipToUserData(type="users", id=assignee)  # ty:ignore[invalid-argument-type]
             )
         )
 
@@ -398,9 +398,9 @@ def create_incident(title, severity, team, assignee, customer_impacted, format):
         ),
     )
     if relationships is not None:
-        data_kwargs["relationships"] = relationships
+        data_kwargs["relationships"] = relationships  # ty:ignore[invalid-assignment]
 
-    body = IncidentCreateRequest(data=IncidentCreateData(**data_kwargs))
+    body = IncidentCreateRequest(data=IncidentCreateData(**data_kwargs))  # ty:ignore[invalid-argument-type]
 
     with console.status("[cyan]Creating incident...[/cyan]"):
         response = client.incidents.create_incident(body=body)
@@ -415,7 +415,7 @@ def create_incident(title, severity, team, assignee, customer_impacted, format):
             "severity": _stringify_enum(_incident_severity(attrs), severity or "unknown"),
             "status": _stringify_enum(_incident_state(attrs), "unknown"),
         }
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
     else:
         console.print(f"[green]Incident {inc.id} created[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -540,7 +540,7 @@ def update_incident(
     body = IncidentUpdateRequest(
         data=IncidentUpdateData(
             id=incident_id,
-            type="incidents",
+            type="incidents",  # ty:ignore[invalid-argument-type]
             attributes=IncidentUpdateAttributes(**attrs_kwargs),
         )
     )
@@ -626,7 +626,7 @@ def update_incident(
             "status": _stringify_enum(_incident_state(attrs), "unknown"),
             "assignee": getattr(attrs, "assignee", ""),
         }
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
     else:
         console.print(f"[green]Incident {incident_id} updated[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -767,7 +767,7 @@ def complete_todo(incident_id, todo_id):
         "Content-Type": "application/json",
     }
 
-    completed_at = datetime.utcnow().isoformat() + "Z"
+    completed_at = datetime.utcnow().isoformat() + "Z"  # ty:ignore[deprecated]
     body = {
         "data": {
             "type": "incident_todos",

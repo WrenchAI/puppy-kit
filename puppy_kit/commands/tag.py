@@ -40,7 +40,7 @@ def list_tags(host, source, fmt):
 
     if fmt == "json":
         output = {"host": host, "tags": tags}
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
     else:
         if not tags:
             console.print(f"[dim]No tags found for {host}[/dim]")
@@ -77,7 +77,7 @@ def add_tags(host, tags, source):
         kwargs["source"] = source
 
     with console.status(f"[cyan]Adding tags to {host}...[/cyan]"):
-        response = client.tags.create_host_tags(**kwargs)
+        response = client.tags.create_host_tags(**kwargs)  # ty:ignore[invalid-argument-type]
 
     result_tags = getattr(response, "tags", None) or []
     console.print(f"[green]Added {len(list(tags))} tag(s) to {host}[/green]")
@@ -106,7 +106,7 @@ def replace_tags(host, tags, source):
         kwargs["source"] = source
 
     with console.status(f"[cyan]Replacing tags on {host}...[/cyan]"):
-        response = client.tags.update_host_tags(**kwargs)
+        response = client.tags.update_host_tags(**kwargs)  # ty:ignore[invalid-argument-type]
 
     result_tags = getattr(response, "tags", None) or []
     console.print(f"[green]Replaced tags on {host} ({len(result_tags)} tag(s))[/green]")

@@ -294,7 +294,7 @@ def summary(output_format: str, show_all: bool, sort_by: str) -> None:
             "previous_meta": vars(getattr(previous_payload, "meta", SimpleNamespace())),
             "rows": rows,
         }
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
         return
 
     table = Table(title=f"Estimated Cost Summary ({current_month.isoformat()})")
@@ -402,7 +402,7 @@ def month_over_month(output_format: str, threshold: float, show_all: bool) -> No
             "previous_meta": vars(getattr(previous_payload, "meta", SimpleNamespace())),
             "rows": rows,
         }
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
         return
 
     table = Table(

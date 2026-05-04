@@ -284,12 +284,12 @@ class DatadogClient:
 
         self.api_client = ApiClient(configuration)
         if (TRACE_ENABLED or DEBUG_ENABLED) and not hasattr(self.api_client, "_original_call_api"):
-            self.api_client._original_call_api = self.api_client.call_api
+            self.api_client._original_call_api = self.api_client.call_api  # ty:ignore[invalid-assignment]
 
             def traced_call_api(resource_path, method, *args, **kwargs):
                 status = "-"
                 try:
-                    result = self.api_client._original_call_api(
+                    result = self.api_client._original_call_api(  # ty:ignore[unresolved-attribute]
                         resource_path, method, *args, **kwargs
                     )
                     # Try to extract status from result
@@ -337,7 +337,7 @@ class DatadogClient:
                     if TRACE_ENABLED:
                         trace_logger.info(f"API | {method} | {resource_path} | {status} | - | -")
 
-            self.api_client.call_api = traced_call_api
+            self.api_client.call_api = traced_call_api  # ty:ignore[invalid-assignment]
 
         # V1 APIs
         self.monitors = monitors_api.MonitorsApi(self.api_client)

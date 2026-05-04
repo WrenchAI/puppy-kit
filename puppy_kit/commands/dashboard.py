@@ -170,7 +170,7 @@ def create_dashboard_cmd(title, layout_type, description, file_data, from_stdin,
     client = get_datadog_client()
 
     with console.status("[cyan]Creating dashboard...[/cyan]"):
-        result = client.dashboards.create_dashboard(body=body)
+        result = client.dashboards.create_dashboard(body=body)  # ty:ignore[invalid-argument-type]
 
     if fmt == "json":
         click.echo(json.dumps(json_list_response(result.to_dict())))

@@ -280,7 +280,7 @@ def validate_monitor(monitor_type, query):
     # Check if result has errors
     if hasattr(result, "errors") and result.errors:
         console.print("[red]✗ Monitor definition is invalid[/red]")
-        for error in result.errors:
+        for error in result.errors:  # ty:ignore[not-iterable]
             console.print(f"  • {error}")
         sys.exit(1)
     else:
@@ -444,7 +444,7 @@ def mute_all_monitors(message):
     if message:
         kwargs["message"] = message
 
-    downtime_body = Downtime(**kwargs)
+    downtime_body = Downtime(**kwargs)  # ty:ignore[invalid-argument-type]
 
     with console.status("[cyan]Muting all monitors...[/cyan]"):
         result = client.downtimes.create_downtime(body=downtime_body)

@@ -113,8 +113,8 @@ def list_events(query, from_time, to_time, limit, format):
     with console.status("[cyan]Searching RUM events...[/cyan]"):
         response = client.rum.list_rum_events(
             filter_query=query,
-            filter_from=from_str,
-            filter_to=to_str,
+            filter_from=from_str,  # ty:ignore[invalid-argument-type]
+            filter_to=to_str,  # ty:ignore[invalid-argument-type]
             page_limit=limit,
         )
 
@@ -203,7 +203,7 @@ def analytics(query, metric, group_by, from_time, to_time, format):
     }
 
     with console.status("[cyan]Computing RUM analytics...[/cyan]"):
-        response = client.rum.aggregate_rum_events(body=body)
+        response = client.rum.aggregate_rum_events(body=body)  # ty:ignore[invalid-argument-type]
 
     buckets = response.data.buckets if response.data else []
 

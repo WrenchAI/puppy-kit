@@ -101,7 +101,7 @@ def init_config():
     if not data:
         data = {"active_profile": "", "profiles": {}}
 
-    data["profiles"][profile_name] = {
+    data["profiles"][profile_name] = {  # ty:ignore[invalid-assignment]
         "api_key": api_key,
         "app_key": app_key,
         "site": site,
@@ -142,7 +142,7 @@ def set_profile(name, api_key, app_key, site, ops_profile):
     if not data:
         data = {"active_profile": "", "profiles": {}}
 
-    data["profiles"][name] = {
+    data["profiles"][name] = {  # ty:ignore[invalid-assignment]
         "api_key": api_key,
         "app_key": app_key,
         "site": site,
