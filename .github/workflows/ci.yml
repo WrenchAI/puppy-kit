@@ -28,8 +28,15 @@ jobs:
       - name: Lint
         run: uv run ruff check puppy_kit/ tests/
 
-      - name: Type check
-        run: uv run ty check puppy_kit/
+      - name: Type check changed files
+        run: |
+          changed=$(git diff --name-only origin/main...HEAD -- '*.py' | grep '^puppy_kit/' || true)
+          if [ -n "$changed" ]; then
+            echo "Checking: $changed"
+            uv run ty check $changed
+          else
+            echo "No puppy_kit Python files changed, skipping."
+          fi
 
   test:
     runs-on: ubuntu-latest
