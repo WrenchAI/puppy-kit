@@ -653,6 +653,62 @@ def delete_incident(incident_id, confirmed):
 
 
 @incident.group()
+def fields():
+    """Incident custom fields."""
+    pass
+
+
+@fields.command(name="get")
+@click.argument("incident_id")
+@click.option(
+    "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
+)
+@handle_api_error
+def get_fields(incident_id, format):
+    """Get custom field values for an incident."""
+    config = load_config()
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://{config.site}/api/v2/incidents/{incident_id}"
+    params = {"include": "field_values"}
+
+    with console.status(f"[cyan]Fetching incident fields for {incident_id}...[/cyan]"):
+        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+
+    fields_dict = {}
+    response_data = data.get("data", {})
+    attributes = response_data.get("attributes", {})
+    fields_obj = attributes.get("fields", {})
+
+    if isinstance(fields_obj, dict):
+        for key, value_obj in fields_obj.items():
+            if isinstance(value_obj, dict):
+                field_value = value_obj.get("value")
+                if field_value is not None:
+                    fields_dict[key] = field_value
+            else:
+                field_value = getattr(value_obj, "value", None)
+                if field_value is not None:
+                    fields_dict[key] = field_value
+
+    if format == "json":
+        click.echo(json.dumps(json_list_response(fields_dict)))
+    else:
+        table = Table(title=f"Fields for {incident_id}")
+        table.add_column("Field", style="cyan")
+        table.add_column("Value", style="white")
+
+        for key in sorted(fields_dict.keys()):
+            table.add_row(key, str(fields_dict[key]))
+
+        console.print(table)
+
+
+@incident.group()
 def todo():
     """Incident todo management."""
     pass

@@ -171,20 +171,49 @@ def dd_incidents_update(
     severity: str | None = None,
     status: str | None = None,
     assignee: str | None = None,
+    summary: str | None = None,
+    root_cause: str | None = None,
+    triage_findings: str | None = None,
+    detection_method: str | None = None,
+    needs_monitoring: str | None = None,
+    needs_human_attention: str | None = None,
+    triage_completed: str | None = None,
+    is_duplicate: str | None = None,
+    github_refs: str | None = None,
+    datadog_refs: str | None = None,
+    teams: list[str] | None = None,
+    services: list[str] | None = None,
+    related_incidents: list[str] | None = None,
 ) -> str:
-    """Update an existing Datadog incident's title, severity, status, or commander.
+    """Update an existing Datadog incident with title, severity, status, commander, and custom fields.
 
-    Use to progress an incident through its lifecycle. At least one field must be
-    provided. Typical flow: create with status 'active', set 'stable' once contained,
-    set 'resolved' once the fix is confirmed. To close an incident always use
-    status='resolved' here — do not use dd_incidents_delete for real incidents.
+    Use to progress an incident through its lifecycle and populate custom workflow fields.
+    At least one field must be provided. Typical flow: create with status 'active', set
+    'stable' once contained, set 'resolved' once the fix is confirmed. Use custom fields
+    to document triage results, root cause, detection method, and related resources.
+    To close an incident always use status='resolved' here — do not use dd_incidents_delete
+    for real incidents.
 
     Args:
         incident_id: The incident UUID to update.
-        title: New title (optional).
+        title: New incident title (optional).
         severity: New severity — SEV-1 through SEV-5 (optional).
         status: 'active', 'stable', or 'resolved' (optional).
         assignee: Assignee name (e.g., 'muhammad', 'willem', 'jeong') to set as incident commander (optional).
+        summary: Brief summary of the incident (optional).
+        root_cause: Root cause description (optional).
+        triage_findings: Triage findings (optional).
+        detection_method: How the incident was detected: 'monitor', 'employee', 'customer',
+                          'alert', or 'unknown' (optional).
+        needs_monitoring: 'yes' or 'no' (optional).
+        needs_human_attention: 'yes' or 'no' (optional).
+        triage_completed: 'yes' or 'no' (optional).
+        is_duplicate: 'yes' or 'no' (optional).
+        github_refs: GitHub references (optional).
+        datadog_refs: Datadog references (optional).
+        teams: List of team names (optional).
+        services: List of service names (optional).
+        related_incidents: List of related incident IDs (optional).
 
     Returns JSON of the updated incident.
     """
@@ -199,7 +228,58 @@ def dd_incidents_update(
         args += ["--status", status]
     if assignee is not None:
         args += ["--assignee", assignee]
+    if summary is not None:
+        args += ["--summary", summary]
+    if root_cause is not None:
+        args += ["--root-cause", root_cause]
+    if triage_findings is not None:
+        args += ["--triage-findings", triage_findings]
+    if detection_method is not None:
+        args += ["--detection-method", detection_method]
+    if needs_monitoring is not None:
+        args += ["--needs-monitoring", needs_monitoring]
+    if needs_human_attention is not None:
+        args += ["--needs-human-attention", needs_human_attention]
+    if triage_completed is not None:
+        args += ["--triage-completed", triage_completed]
+    if is_duplicate is not None:
+        args += ["--is-duplicate", is_duplicate]
+    if github_refs is not None:
+        args += ["--github-refs", github_refs]
+    if datadog_refs is not None:
+        args += ["--datadog-refs", datadog_refs]
+    if teams is not None:
+        for team in teams:
+            args += ["--teams", team]
+    if services is not None:
+        for service in services:
+            args += ["--services", service]
+    if related_incidents is not None:
+        for incident in related_incidents:
+            args += ["--related-incidents", incident]
+
     result = CliRunner().invoke(update_incident, args, catch_exceptions=False)
+    return result.output
+
+
+@mcp.tool()
+def dd_incidents_get_fields(incident_id: str) -> str:
+    """Return the custom field values for a single Datadog incident.
+
+    Use this after dd_incidents_get when you need to read the workflow fields
+    (triage_completed, needs_human_attention, root_cause, summary, etc.) that
+    are not included in the main incident payload.
+
+    Args:
+        incident_id: The incident UUID to query.
+
+    Returns JSON dict mapping field key to its current value.
+    """
+    from puppy_kit.commands.incident import get_fields
+
+    result = CliRunner().invoke(
+        get_fields, [incident_id, "--format", "json"], catch_exceptions=False
+    )
     return result.output
 
 
