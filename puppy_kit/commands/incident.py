@@ -108,6 +108,8 @@ def list_incidents(
     format: str, status: str | None, page_size: int, query: str, sort: str, since: str | None
 ) -> None:
     """List incidents with Datadog search queries, sorting, and optional cutoff pagination."""
+    from typing import Any, cast
+    from datadog_api_client.v2.model.incident_search_sort_order import IncidentSearchSortOrder  # noqa: F401
 
     def _parse_since(value: str | None) -> datetime | None:
         if value is None:
@@ -184,7 +186,7 @@ def list_incidents(
         while page_offset is not None:
             response = client.incidents.search_incidents(
                 search_query,
-                sort=sort,  # ty:ignore[invalid-argument-type]
+                sort=cast(Any, sort),  # SDK accepts str at runtime
                 page_size=effective_page_size,
                 page_offset=page_offset,
             )
@@ -372,35 +374,39 @@ def create_incident(title, severity, team, assignee, customer_impacted, format):
     from datadog_api_client.v2.model.nullable_relationship_to_user_data import (
         NullableRelationshipToUserData,
     )
+    from datadog_api_client.v2.model.users_type import UsersType
+    from datadog_api_client.v2.model.incident_type import IncidentType
 
     client = get_datadog_client()
 
-    fields: dict = {}
+    from typing import Any
+
+    fields_dict: dict[str, Any] = {}
     if severity is not None:
-        fields["severity"] = {"type": "dropdown", "value": severity}
+        fields_dict["severity"] = {"type": "dropdown", "value": severity}
     if team is not None:
-        fields["teams"] = {"type": "autocomplete", "value": [team]}
+        fields_dict["teams"] = {"type": "autocomplete", "value": [team]}
 
     relationships = None
     if assignee:
         relationships = IncidentCreateRelationships(
             commander_user=NullableRelationshipToUser(
-                data=NullableRelationshipToUserData(type="users", id=assignee)  # ty:ignore[invalid-argument-type]
+                data=NullableRelationshipToUserData(type=UsersType("users"), id=assignee)
             )
         )
 
-    data_kwargs = dict(
-        type="incidents",
+    data_kwargs: dict[str, Any] = dict(
+        type=IncidentType("incidents"),
         attributes=IncidentCreateAttributes(
             title=title,
             customer_impacted=customer_impacted,
-            fields=fields,
+            fields=fields_dict,
         ),
     )
     if relationships is not None:
-        data_kwargs["relationships"] = relationships  # ty:ignore[invalid-assignment]
+        data_kwargs["relationships"] = relationships
 
-    body = IncidentCreateRequest(data=IncidentCreateData(**data_kwargs))  # ty:ignore[invalid-argument-type]
+    body = IncidentCreateRequest(data=IncidentCreateData(**data_kwargs))
 
     with console.status("[cyan]Creating incident...[/cyan]"):
         response = client.incidents.create_incident(body=body)
@@ -502,6 +508,7 @@ def update_incident(
     from datadog_api_client.v2.model.incident_update_request import IncidentUpdateRequest
     from datadog_api_client.v2.model.incident_update_data import IncidentUpdateData
     from datadog_api_client.v2.model.incident_update_attributes import IncidentUpdateAttributes
+    from datadog_api_client.v2.model.incident_type import IncidentType
 
     field_opts = [
         summary,
@@ -540,7 +547,7 @@ def update_incident(
     body = IncidentUpdateRequest(
         data=IncidentUpdateData(
             id=incident_id,
-            type="incidents",  # ty:ignore[invalid-argument-type]
+            type=IncidentType("incidents"),
             attributes=IncidentUpdateAttributes(**attrs_kwargs),
         )
     )
@@ -650,6 +657,63 @@ def delete_incident(incident_id, confirmed):
         client.incidents.delete_incident(incident_id=incident_id)
 
     console.print(f"[green]Incident {incident_id} deleted[/green]")
+
+
+@incident.group()
+def fields():
+    """Incident custom fields."""
+    pass
+
+
+@fields.command(name="get")
+@click.argument("incident_id")
+@click.option(
+    "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
+)
+@handle_api_error
+def get_fields(incident_id, format):
+    """Get custom field values for an incident."""
+    config = load_config()
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}"
+    params = {"include": "user_defined_fields"}
+    # The SDK does not expose the 'include' query parameter for this endpoint.
+
+    with console.status(f"[cyan]Fetching incident fields for {incident_id}...[/cyan]"):
+        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+
+    fields_dict = {}
+    response_data = data.get("data", {})
+    attributes = response_data.get("attributes", {})
+    fields_obj = attributes.get("fields", {})
+
+    if isinstance(fields_obj, dict):
+        for key, value_obj in fields_obj.items():
+            if isinstance(value_obj, dict):
+                field_value = value_obj.get("value")
+                if field_value is not None:
+                    fields_dict[key] = field_value
+            else:
+                field_value = getattr(value_obj, "value", None)
+                if field_value is not None:
+                    fields_dict[key] = field_value
+
+    if format == "json":
+        click.echo(json.dumps({"data": fields_dict}))
+    else:
+        table = Table(title=f"Fields for {incident_id}")
+        table.add_column("Field", style="cyan")
+        table.add_column("Value", style="white")
+
+        for key in sorted(fields_dict.keys()):
+            table.add_row(key, str(fields_dict[key]))
+
+        console.print(table)
 
 
 @incident.group()
@@ -767,7 +831,7 @@ def complete_todo(incident_id, todo_id):
         "Content-Type": "application/json",
     }
 
-    completed_at = datetime.utcnow().isoformat() + "Z"  # ty:ignore[deprecated]
+    completed_at = datetime.now(timezone.utc).isoformat()
     body = {
         "data": {
             "type": "incident_todos",

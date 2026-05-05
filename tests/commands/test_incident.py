@@ -440,6 +440,76 @@ class TestDeleteIncident:
         mock_client.incidents.delete_incident.assert_not_called()
 
 
+class TestIncidentFields:
+    def test_get_fields_json(self, runner):
+        """Test retrieving custom fields in JSON format."""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "data": {
+                "attributes": {
+                    "fields": {
+                        "severity": {"type": "dropdown", "value": "SEV-3"},
+                        "triagecompleted": {"type": "dropdown", "value": "Yes"},
+                        "summary": {"type": "textbox", "value": "Users cannot log in"},
+                    }
+                }
+            }
+        }
+        mock_response.raise_for_status = Mock()
+
+        mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
+
+        with patch(
+            "puppy_kit.commands.incident.requests.get", return_value=mock_response
+        ) as mock_get:
+            with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                result = runner.invoke(incident, ["fields", "get", "inc-123", "--format", "json"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_get.assert_called_once()
+        call_kwargs = mock_get.call_args
+        assert "api.us5.datadoghq.com" in call_kwargs.args[0]
+        assert call_kwargs.kwargs.get("params", {}).get("include") == "user_defined_fields"
+        output = json.loads(result.output)["data"]
+        assert output["severity"] == "SEV-3"
+        assert output["triagecompleted"] == "Yes"
+        assert output["summary"] == "Users cannot log in"
+
+    def test_get_fields_table(self, runner):
+        """Test retrieving custom fields in table format."""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "data": {
+                "attributes": {
+                    "fields": {
+                        "severity": {"type": "dropdown", "value": "SEV-3"},
+                        "triagecompleted": {"type": "dropdown", "value": "Yes"},
+                        "summary": {"type": "textbox", "value": "Users cannot log in"},
+                    }
+                }
+            }
+        }
+        mock_response.raise_for_status = Mock()
+
+        mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
+
+        with patch(
+            "puppy_kit.commands.incident.requests.get", return_value=mock_response
+        ) as mock_get:
+            with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                result = runner.invoke(incident, ["fields", "get", "inc-123"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_get.assert_called_once()
+        call_kwargs = mock_get.call_args
+        assert "api.us5.datadoghq.com" in call_kwargs.args[0]
+        assert call_kwargs.kwargs.get("params", {}).get("include") == "user_defined_fields"
+        assert "severity" in result.output
+        assert "SEV-3" in result.output
+        assert "triagecompleted" in result.output
+        assert "Yes" in result.output
+
+
 @pytest.mark.integration
 class TestTodoCommands:
     def test_todo_add(self, mock_client, runner):
