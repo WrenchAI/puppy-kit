@@ -455,14 +455,21 @@ class TestIncidentFields:
                 }
             }
         }
+        mock_response.raise_for_status = Mock()
 
         mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
 
-        with patch("puppy_kit.commands.incident.requests.get", return_value=mock_response):
+        with patch(
+            "puppy_kit.commands.incident.requests.get", return_value=mock_response
+        ) as mock_get:
             with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
                 result = runner.invoke(incident, ["fields", "get", "inc-123", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_get.assert_called_once()
+        call_kwargs = mock_get.call_args
+        assert "api.us5.datadoghq.com" in call_kwargs.args[0]
+        assert call_kwargs.kwargs.get("params", {}).get("include") == "user_defined_fields"
         output = json.loads(result.output)["data"]
         assert output["severity"] == "SEV-3"
         assert output["triagecompleted"] == "Yes"
@@ -482,14 +489,21 @@ class TestIncidentFields:
                 }
             }
         }
+        mock_response.raise_for_status = Mock()
 
         mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
 
-        with patch("puppy_kit.commands.incident.requests.get", return_value=mock_response):
+        with patch(
+            "puppy_kit.commands.incident.requests.get", return_value=mock_response
+        ) as mock_get:
             with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
                 result = runner.invoke(incident, ["fields", "get", "inc-123"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_get.assert_called_once()
+        call_kwargs = mock_get.call_args
+        assert "api.us5.datadoghq.com" in call_kwargs.args[0]
+        assert call_kwargs.kwargs.get("params", {}).get("include") == "user_defined_fields"
         assert "severity" in result.output
         assert "SEV-3" in result.output
         assert "triagecompleted" in result.output

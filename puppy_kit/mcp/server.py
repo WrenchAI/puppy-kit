@@ -273,7 +273,7 @@ def dd_incidents_get_fields(incident_id: str) -> str:
     Args:
         incident_id: The incident UUID to query.
 
-    Returns JSON dict mapping field key to its current value.
+    Returns JSON object with a 'data' key mapping field keys to their current values.
     """
     from puppy_kit.commands.incident import get_fields
 

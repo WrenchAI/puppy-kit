@@ -671,8 +671,9 @@ def get_fields(incident_id, format):
         "DD-API-KEY": config.api_key,
         "DD-APPLICATION-KEY": config.app_key,
     }
-    url = f"https://{config.site}/api/v2/incidents/{incident_id}"
-    params = {"include": "field_values"}
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}"
+    params = {"include": "user_defined_fields"}
+    # The SDK does not expose the 'include' query parameter for this endpoint.
 
     with console.status(f"[cyan]Fetching incident fields for {incident_id}...[/cyan]"):
         resp = requests.get(url, headers=headers, params=params, timeout=30)
@@ -696,7 +697,7 @@ def get_fields(incident_id, format):
                     fields_dict[key] = field_value
 
     if format == "json":
-        click.echo(json.dumps(json_list_response(fields_dict)))
+        click.echo(json.dumps({"data": fields_dict}))
     else:
         table = Table(title=f"Fields for {incident_id}")
         table.add_column("Field", style="cyan")
