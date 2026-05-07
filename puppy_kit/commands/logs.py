@@ -9,7 +9,7 @@ from rich.table import Table
 from puppy_kit.client import get_datadog_client
 from puppy_kit.utils.error import handle_api_error
 from puppy_kit.utils.time import parse_time_range
-from puppy_kit.utils.format import truncate, json_list_response
+from puppy_kit.utils.format import truncate, json_list_response, json_default
 
 console = Console()
 
@@ -134,7 +134,7 @@ def search_logs(query, from_time, to_time, service, status, limit, format, verbo
 
     if format == "json":
         output = [_format_log_entry(log) for log in log_entries]
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output), default=json_default))
     else:
         table = _render_logs_table(log_entries, title="Log Search Results", verbose=verbose)
         console.print(table)
@@ -207,7 +207,12 @@ def tail_logs(query, lines, service, follow, format, verbose):
                 if new_logs:
                     if format == "json":
                         for log in new_logs:
-                            click.echo(json.dumps(json_list_response([_format_log_entry(log)])))
+                            click.echo(
+                                json.dumps(
+                                    json_list_response([_format_log_entry(log)]),
+                                    default=json_default,
+                                )
+                            )
                     else:
                         for log in new_logs:
                             attrs = log.attributes
@@ -246,7 +251,7 @@ def tail_logs(query, lines, service, follow, format, verbose):
 
         if format == "json":
             output = [_format_log_entry(log) for log in log_entries]
-            click.echo(json.dumps(json_list_response(output)))
+            click.echo(json.dumps(json_list_response(output), default=json_default))
         else:
             table = _render_logs_table(log_entries, title="Recent Logs (last 15m)", verbose=verbose)
             console.print(table)
@@ -309,7 +314,7 @@ def query_logs(query, from_time, to_time, group_by, metric, format):
                 value = list(bucket.computes.values())[0]
                 result[metric] = value
             output.append(result)
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output), default=json_default))
     else:
         title = f"Log Analytics ({metric})"
         if group_by:
@@ -369,7 +374,7 @@ def trace_logs(trace_id, format):
 
     if format == "json":
         output = [_format_log_entry(log) for log in log_entries]
-        click.echo(json.dumps(json_list_response(output)))
+        click.echo(json.dumps(json_list_response(output), default=json_default))
     else:
         table = _render_logs_table(log_entries, title=f"Logs for trace {trace_id}", verbose=False)
         console.print(table)

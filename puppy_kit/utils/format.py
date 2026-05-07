@@ -28,3 +28,16 @@ def json_list_response(
 ) -> dict:
     """Wrap list data in envelope with metadata and hint."""
     return {"data": data, "count": len(data), "hint": hint}
+
+
+def json_default(obj: object) -> str:
+    """JSON serializer fallback for types not supported by the stdlib encoder.
+
+    Handles datetime objects (returned by the Datadog SDK) and falls back to
+    str() for anything else.
+    """
+    from datetime import datetime, date
+
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    return str(obj)
