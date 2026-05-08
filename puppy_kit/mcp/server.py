@@ -111,7 +111,7 @@ def dd_incidents_get(incident_id: str) -> str:
     Returns metadata, all custom fields, and the first 10 timeline cells in one
     response. Use this after dd_incidents_list to drill into a specific incident.
 
-    Always follow this call with dd_incidents_get_timeline — the timeline is the
+    Always follow this call with dd_incidents_get_timeline — the timeline is a
     primary source of information and must always be read before drawing any
     conclusions. Incident titles and fields are overwritten during triage;
     the timeline is append-only and contains the unmodified original signals
@@ -298,7 +298,7 @@ def dd_incidents_get_fields(incident_id: str) -> str:
 def dd_incidents_get_timeline(incident_id: str) -> str:
     """Get the full timeline of a Datadog incident. Always call this when triaging.
 
-    The timeline is the primary source of information for any incident. It contains
+    The timeline is a primary source of information for any incident. It contains
     the unmodified original signals: markdown notes posted by agents and humans
     (bug report context, user scope, investigation notes) and every status change
     event with before/after values. Always read the timeline before drawing any
