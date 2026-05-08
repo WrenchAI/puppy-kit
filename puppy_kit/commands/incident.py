@@ -352,7 +352,7 @@ def get_incident(incident_id, format):
                 f"Timeline truncated to {TIMELINE_CELL_LIMIT} cells. "
                 "Use dd_incidents_get_timeline for the full output."
             )
-        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
+        click.echo(json.dumps(output))
     else:
         console.print(f"\n[bold cyan]Incident {inc.id}[/bold cyan]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -494,7 +494,7 @@ def create_incident(title, severity, team, assignee, customer_impacted, format):
             "severity": _stringify_enum(_incident_severity(attrs), severity or "unknown"),
             "status": _stringify_enum(_incident_state(attrs), "unknown"),
         }
-        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
+        click.echo(json.dumps(output))
     else:
         console.print(f"[green]Incident {inc.id} created[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -706,7 +706,7 @@ def update_incident(
             "status": _stringify_enum(_incident_state(attrs), "unknown"),
             "assignee": getattr(attrs, "assignee", ""),
         }
-        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
+        click.echo(json.dumps(output))
     else:
         console.print(f"[green]Incident {incident_id} updated[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")

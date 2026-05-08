@@ -256,15 +256,23 @@ class TestGetIncident:
         response = Mock(data=inc)
         mock_client.incidents.get_incident.return_value = response
 
+        mock_timeline = Mock()
+        mock_timeline.json.return_value = {"data": []}
+        mock_timeline.raise_for_status = Mock()
+        mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
+
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
+            with patch("puppy_kit.commands.incident.requests.get", return_value=mock_timeline):
+                with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                    result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)["data"]
+        output = json.loads(result.output)
         assert output["id"] == "inc-1"
         assert output["title"] == "Service outage"
         assert output["severity"] == "SEV-1"
         assert output["status"] == "active"
+        assert "timeline" in output
 
     def test_get_incident_json_uses_fields_fallback_for_state_and_severity(
         self, mock_client, runner
@@ -274,11 +282,18 @@ class TestGetIncident:
         response = Mock(data=inc)
         mock_client.incidents.get_incident.return_value = response
 
+        mock_timeline = Mock()
+        mock_timeline.json.return_value = {"data": []}
+        mock_timeline.raise_for_status = Mock()
+        mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
+
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
+            with patch("puppy_kit.commands.incident.requests.get", return_value=mock_timeline):
+                with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                    result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)["data"]
+        output = json.loads(result.output)
         assert output["severity"] == "SEV-1"
         assert output["status"] == "resolved"
 
@@ -325,7 +340,7 @@ class TestCreateIncident:
             )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        output = json.loads(result.output)["data"]
+        output = json.loads(result.output)
         assert output["id"] == "inc-new"
         assert output["severity"] == "SEV-2"
 
