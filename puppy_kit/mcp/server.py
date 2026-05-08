@@ -284,6 +284,36 @@ def dd_incidents_get_fields(incident_id: str) -> str:
 
 
 @mcp.tool()
+def dd_incidents_get_timeline(incident_id: str) -> str:
+    """Get the full timeline of a Datadog incident — the actual narrative of what happened.
+
+    Use this after dd_incidents_get or dd_incidents_get_fields to read the real
+    evidence: markdown notes posted by agents and humans during triage, bug report
+    context blocks, user scope data, and status change events. This is essential
+    for understanding what actually triggered the incident versus what was inferred.
+
+    The timeline is the primary source of truth. Incident titles and root_cause
+    fields may be overwritten during triage — the timeline shows the original
+    signals unmodified.
+
+    Args:
+        incident_id: The incident UUID to retrieve timeline for.
+
+    Returns JSON array of timeline cells in chronological order. Each cell has:
+        - cell_type: 'markdown' (agent/human notes) or 'incident_status_change'
+        - created: ISO timestamp
+        - content: for markdown cells, 'content' key holds the raw markdown text;
+                   for status_change cells, 'before'/'after'/'action' show what changed.
+    """
+    from puppy_kit.commands.incident import list_timeline
+
+    result = CliRunner().invoke(
+        list_timeline, [incident_id, "--format", "json"], catch_exceptions=False
+    )
+    return result.output
+
+
+@mcp.tool()
 def dd_incidents_delete(incident_id: str) -> str:
     """Permanently delete a Datadog incident. Use only to remove erroneous or duplicate records.
 

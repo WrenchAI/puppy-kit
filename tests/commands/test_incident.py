@@ -767,3 +767,109 @@ class TestAttachmentCommands:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "deleted" in result.output
+
+
+@pytest.mark.integration
+class TestTimelineCommands:
+    def test_timeline_list_json(self, runner):
+        """Test retrieving timeline in JSON format."""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "data": [
+                {
+                    "id": "cell-1",
+                    "type": "incident_timeline_cells",
+                    "attributes": {
+                        "cell_type": "markdown",
+                        "created": "2026-03-11T10:00:00Z",
+                        "modified": "2026-03-11T10:00:00Z",
+                        "content": {"content": "Initial report from monitoring alert"},
+                    },
+                },
+                {
+                    "id": "cell-2",
+                    "type": "incident_timeline_cells",
+                    "attributes": {
+                        "cell_type": "incident_status_change",
+                        "created": "2026-03-11T10:05:00Z",
+                        "modified": "2026-03-11T10:05:00Z",
+                        "content": {
+                            "action": "updated",
+                            "before": {"state": "active"},
+                            "after": {"state": "stable"},
+                        },
+                    },
+                },
+            ]
+        }
+        mock_response.raise_for_status = Mock()
+
+        mock_config = Mock(site="datadoghq.com", api_key="test", app_key="test")
+
+        with patch(
+            "puppy_kit.commands.incident.requests.get", return_value=mock_response
+        ) as mock_get:
+            with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                result = runner.invoke(
+                    incident, ["timeline", "list", "inc-123", "--format", "json"]
+                )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_get.assert_called_once()
+        call_kwargs = mock_get.call_args
+        assert "api.datadoghq.com" in call_kwargs.args[0]
+        assert "inc-123/timeline" in call_kwargs.args[0]
+        output = json.loads(result.output)
+        assert "data" in output
+        assert len(output["data"]) == 2
+        assert output["data"][0]["id"] == "cell-1"
+        assert output["data"][0]["cell_type"] == "markdown"
+        assert output["data"][1]["id"] == "cell-2"
+        assert output["data"][1]["cell_type"] == "incident_status_change"
+
+    def test_timeline_list_table(self, runner):
+        """Test retrieving timeline in table format."""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "data": [
+                {
+                    "id": "cell-1",
+                    "type": "incident_timeline_cells",
+                    "attributes": {
+                        "cell_type": "markdown",
+                        "created": "2026-03-11T10:00:00Z",
+                        "modified": "2026-03-11T10:00:00Z",
+                        "content": {"content": "Initial report from monitoring"},
+                    },
+                }
+            ]
+        }
+        mock_response.raise_for_status = Mock()
+
+        mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
+
+        with patch(
+            "puppy_kit.commands.incident.requests.get", return_value=mock_response
+        ) as mock_get:
+            with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                result = runner.invoke(incident, ["timeline", "list", "inc-123"])
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        mock_get.assert_called_once()
+        assert "Timeline for inc-123" in result.output
+        assert "1 cells" in result.output
+        assert "markdown" in result.output
+        assert "Initial report from monitoring" in result.output
+
+    def test_timeline_list_404_error(self, runner):
+        """Test handling of 404 when incident timeline not found."""
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = Exception("404 Client Error: Not Found")
+
+        mock_config = Mock(site="datadoghq.com", api_key="test", app_key="test")
+
+        with patch("puppy_kit.commands.incident.requests.get", return_value=mock_response):
+            with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                result = runner.invoke(incident, ["timeline", "list", "inc-notfound"])
+
+        assert result.exit_code != 0

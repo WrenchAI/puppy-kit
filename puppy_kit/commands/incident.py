@@ -1126,3 +1126,84 @@ def delete_attachment(incident_id, attachment_id):
         resp.raise_for_status()
 
     console.print("[green]Attachment deleted[/green]")
+
+
+@incident.group()
+def timeline():
+    """Incident timeline commands."""
+    pass
+
+
+@timeline.command(name="list")
+@click.argument("incident_id")
+@click.option(
+    "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
+)
+@handle_api_error
+def list_timeline(incident_id, format):
+    """List timeline cells for an incident.
+
+    Returns all timeline entries in chronological order: markdown notes posted
+    by agents or humans, and system status change events. This is the primary
+    source of truth for understanding what triggered an incident and what was
+    observed during triage.
+    """
+    config = load_config()
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}/timeline"
+
+    with console.status(f"[cyan]Fetching timeline for {incident_id}...[/cyan]"):
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+
+    cells = data.get("data", [])
+
+    if format == "json":
+        output = []
+        for cell in cells:
+            attrs = cell.get("attributes", {})
+            output.append(
+                {
+                    "id": cell.get("id", ""),
+                    "cell_type": attrs.get("cell_type", ""),
+                    "created": attrs.get("created", ""),
+                    "modified": attrs.get("modified", ""),
+                    "content": attrs.get("content", {}),
+                }
+            )
+        click.echo(json.dumps({"data": output}))
+    else:
+        console.print(f"\n[bold cyan]Timeline for {incident_id}[/bold cyan]")
+        console.print(f"[dim]{len(cells)} cells[/dim]\n")
+        for cell in cells:
+            attrs = cell.get("attributes", {})
+            cell_type = attrs.get("cell_type", "")
+            created = attrs.get("created", "")[:19]
+            content = attrs.get("content", {})
+
+            console.print(f"[dim]{created}[/dim] [yellow]{cell_type}[/yellow]")
+
+            if cell_type == "markdown":
+                md_content = content.get("content", "")
+                console.print(md_content)
+            elif cell_type == "incident_status_change":
+                action = content.get("action", "")
+                after = content.get("after", {})
+                before = content.get("before", {})
+                if action == "created":
+                    console.print(
+                        f"  Incident created — title: {after.get('title', '')} severity: {after.get('severity', '')}"
+                    )
+                elif action == "updated":
+                    for key in set(list(before.keys()) + list(after.keys())):
+                        if before.get(key) != after.get(key):
+                            console.print(
+                                f"  {key}: [red]{before.get(key, '')}[/red] → [green]{after.get(key, '')}[/green]"
+                            )
+            else:
+                console.print(f"  {json.dumps(content)[:200]}")
+            console.print()
