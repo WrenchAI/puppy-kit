@@ -284,6 +284,35 @@ def list_incidents(
 TIMELINE_CELL_LIMIT = 10
 
 
+def _fetch_custom_fields(incident_id: str, config) -> dict:
+    """Fetch custom field values for an incident. Returns a flat key→value dict."""
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}"
+    try:
+        resp = requests.get(
+            url, headers=headers, params={"include": "user_defined_fields"}, timeout=30
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return {}
+
+    fields_obj = data.get("data", {}).get("attributes", {}).get("fields", {})
+    result = {}
+    if isinstance(fields_obj, dict):
+        for key, value_obj in fields_obj.items():
+            if isinstance(value_obj, dict):
+                field_value = value_obj.get("value")
+            else:
+                field_value = getattr(value_obj, "value", None)
+            if field_value is not None:
+                result[key] = field_value
+    return result
+
+
 def _fetch_timeline_cells(incident_id: str, config) -> tuple[list[dict], bool]:
     """Fetch timeline cells for an incident. Returns (cells, truncated)."""
     headers = {
@@ -321,12 +350,13 @@ def _fetch_timeline_cells(incident_id: str, config) -> tuple[list[dict], bool]:
 )
 @handle_api_error
 def get_incident(incident_id, format):
-    """Get incident details including timeline cells."""
+    """Get incident details including custom fields and timeline cells."""
     client = get_datadog_client()
     config = load_config()
 
     with console.status(f"[cyan]Fetching incident {incident_id}...[/cyan]"):
         response = client.incidents.get_incident(incident_id=incident_id)
+        custom_fields = _fetch_custom_fields(incident_id, config)
         timeline_cells, truncated = _fetch_timeline_cells(incident_id, config)
 
     inc = response.data
@@ -344,6 +374,7 @@ def get_incident(incident_id, format):
             "resolved": _stringify_datetime(getattr(attrs, "resolved", "")),
             "created": _stringify_datetime(getattr(attrs, "created", "")),
             "modified": _stringify_datetime(getattr(attrs, "modified", "")),
+            "fields": custom_fields,
             "timeline": timeline_cells,
         }
         if truncated:
@@ -380,6 +411,11 @@ def get_incident(incident_id, format):
         console.print(
             f"[bold]Modified:[/bold] {_stringify_datetime(getattr(attrs, 'modified', ''))}"
         )
+
+        if custom_fields:
+            console.print("\n[bold]Fields[/bold]")
+            for key, value in sorted(custom_fields.items()):
+                console.print(f"  [cyan]{key}:[/cyan] {value}")
 
         if timeline_cells:
             console.print(f"\n[bold]Timeline[/bold] [dim]({len(timeline_cells)} cells)[/dim]")
@@ -747,34 +783,9 @@ def fields():
 def get_fields(incident_id, format):
     """Get custom field values for an incident."""
     config = load_config()
-    headers = {
-        "DD-API-KEY": config.api_key,
-        "DD-APPLICATION-KEY": config.app_key,
-    }
-    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}"
-    params = {"include": "user_defined_fields"}
-    # The SDK does not expose the 'include' query parameter for this endpoint.
 
     with console.status(f"[cyan]Fetching incident fields for {incident_id}...[/cyan]"):
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-
-    fields_dict = {}
-    response_data = data.get("data", {})
-    attributes = response_data.get("attributes", {})
-    fields_obj = attributes.get("fields", {})
-
-    if isinstance(fields_obj, dict):
-        for key, value_obj in fields_obj.items():
-            if isinstance(value_obj, dict):
-                field_value = value_obj.get("value")
-                if field_value is not None:
-                    fields_dict[key] = field_value
-            else:
-                field_value = getattr(value_obj, "value", None)
-                if field_value is not None:
-                    fields_dict[key] = field_value
+        fields_dict = _fetch_custom_fields(incident_id, config)
 
     if format == "json":
         click.echo(json.dumps({"data": fields_dict}))

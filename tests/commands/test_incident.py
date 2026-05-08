@@ -250,19 +250,28 @@ class TestGetIncident:
         assert "active" in result.output
         mock_client.incidents.get_incident.assert_called_once_with(incident_id="inc-1")
 
+    def _make_get_requests_mock(self, fields=None, timeline_cells=None):
+        """Return a side_effect list for requests.get: [fields_response, timeline_response]."""
+        mock_fields = Mock()
+        mock_fields.raise_for_status = Mock()
+        mock_fields.json.return_value = {"data": {"attributes": {"fields": fields or {}}}}
+        mock_timeline = Mock()
+        mock_timeline.raise_for_status = Mock()
+        mock_timeline.json.return_value = {"data": timeline_cells or []}
+        return [mock_fields, mock_timeline]
+
     def test_get_incident_json(self, mock_client, runner):
         """Test getting a single incident in JSON format."""
         inc = _make_incident("inc-1", "Service outage", "SEV-1", "active")
         response = Mock(data=inc)
         mock_client.incidents.get_incident.return_value = response
-
-        mock_timeline = Mock()
-        mock_timeline.json.return_value = {"data": []}
-        mock_timeline.raise_for_status = Mock()
         mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
 
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
-            with patch("puppy_kit.commands.incident.requests.get", return_value=mock_timeline):
+            with patch(
+                "puppy_kit.commands.incident.requests.get",
+                side_effect=self._make_get_requests_mock(),
+            ):
                 with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
                     result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
 
@@ -272,6 +281,7 @@ class TestGetIncident:
         assert output["title"] == "Service outage"
         assert output["severity"] == "SEV-1"
         assert output["status"] == "active"
+        assert "fields" in output
         assert "timeline" in output
 
     def test_get_incident_json_uses_fields_fallback_for_state_and_severity(
@@ -281,14 +291,13 @@ class TestGetIncident:
         inc = _make_incident_fields_only("inc-1", "Service outage", "SEV-1", "resolved")
         response = Mock(data=inc)
         mock_client.incidents.get_incident.return_value = response
-
-        mock_timeline = Mock()
-        mock_timeline.json.return_value = {"data": []}
-        mock_timeline.raise_for_status = Mock()
         mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
 
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
-            with patch("puppy_kit.commands.incident.requests.get", return_value=mock_timeline):
+            with patch(
+                "puppy_kit.commands.incident.requests.get",
+                side_effect=self._make_get_requests_mock(),
+            ):
                 with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
                     result = runner.invoke(incident, ["get", "inc-1", "--format", "json"])
 

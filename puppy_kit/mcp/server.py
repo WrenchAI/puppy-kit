@@ -106,25 +106,27 @@ def dd_incidents_list(
 
 @mcp.tool()
 def dd_incidents_get(incident_id: str) -> str:
-    """Get full details of a single Datadog incident by ID, including timeline cells.
+    """Get full details of a single Datadog incident by ID.
 
-    Use this after dd_incidents_list to drill into a specific incident. Returns
-    title, status, severity, customer_impacted, public_id, detected, resolved,
-    created, and modified timestamps — plus the incident timeline.
+    Returns metadata, all custom fields, and the first 10 timeline cells in one
+    response. Use this after dd_incidents_list to drill into a specific incident.
 
-    The timeline is the primary source of truth. It contains the original markdown
-    notes posted by agents and humans (bug report context, user scope, triage notes)
-    and every status change event with before/after values. Incident titles and
-    root_cause fields can be overwritten during triage; the timeline preserves the
-    unmodified original signals.
+    Always follow this call with dd_incidents_get_timeline — the timeline is the
+    primary source of information and must always be read before drawing any
+    conclusions. Incident titles and fields are overwritten during triage;
+    the timeline is append-only and contains the unmodified original signals
+    (bug report content, user scope, what actually triggered the incident).
 
-    Timeline is truncated to the first 10 cells. If timeline_truncated is true in
-    the response, use dd_incidents_get_timeline to paginate the full output.
+    The fields block contains triage data: root_cause, summary, triage_findings,
+    services, teams, needshumanattention, triagecompleted, githubreferences, etc.
+
+    If timeline_truncated is true, the incident has more than 10 cells —
+    call dd_incidents_get_timeline to read the full timeline.
 
     Args:
         incident_id: The incident UUID to retrieve.
 
-    Returns JSON with full incident details and timeline cells.
+    Returns JSON with incident metadata, fields, and timeline cells.
     """
     from puppy_kit.commands.incident import get_incident
 
@@ -273,11 +275,11 @@ def dd_incidents_update(
 
 @mcp.tool()
 def dd_incidents_get_fields(incident_id: str) -> str:
-    """Return the custom field values for a single Datadog incident.
+    """Return only the custom field values for a single Datadog incident.
 
-    Use this after dd_incidents_get when you need to read the workflow fields
-    (triage_completed, needs_human_attention, root_cause, summary, etc.) that
-    are not included in the main incident payload.
+    Note: dd_incidents_get already includes all fields inline. Use this tool
+    only when you need a lightweight fields-only response without the full
+    metadata and timeline payload.
 
     Args:
         incident_id: The incident UUID to query.
@@ -294,21 +296,22 @@ def dd_incidents_get_fields(incident_id: str) -> str:
 
 @mcp.tool()
 def dd_incidents_get_timeline(incident_id: str) -> str:
-    """Get the full timeline of a Datadog incident — the actual narrative of what happened.
+    """Get the full timeline of a Datadog incident. Always call this when triaging.
 
-    Use this after dd_incidents_get or dd_incidents_get_fields to read the real
-    evidence: markdown notes posted by agents and humans during triage, bug report
-    context blocks, user scope data, and status change events. This is essential
-    for understanding what actually triggered the incident versus what was inferred.
+    The timeline is the primary source of information for any incident. It contains
+    the unmodified original signals: markdown notes posted by agents and humans
+    (bug report context, user scope, investigation notes) and every status change
+    event with before/after values. Always read the timeline before drawing any
+    conclusions — incident titles, root_cause, and other fields can be overwritten
+    during triage, but the timeline is append-only and preserves what actually happened.
 
-    The timeline is the primary source of truth. Incident titles and root_cause
-    fields may be overwritten during triage — the timeline shows the original
-    signals unmodified.
+    dd_incidents_get includes the first 10 cells inline as a convenience. Call this
+    tool to get the complete timeline, especially when timeline_truncated is true.
 
     Args:
         incident_id: The incident UUID to retrieve timeline for.
 
-    Returns JSON array of timeline cells in chronological order. Each cell has:
+    Returns JSON array of all timeline cells in chronological order. Each cell has:
         - cell_type: 'markdown' (agent/human notes) or 'incident_status_change'
         - created: ISO timestamp
         - content: for markdown cells, 'content' key holds the raw markdown text;
