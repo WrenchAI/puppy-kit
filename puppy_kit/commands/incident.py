@@ -281,6 +281,39 @@ def list_incidents(
         console.print(f"\n[dim]Total incidents: {len(all_incidents)}[/dim]")
 
 
+TIMELINE_CELL_LIMIT = 10
+
+
+def _fetch_timeline_cells(incident_id: str, config) -> tuple[list[dict], bool]:
+    """Fetch timeline cells for an incident. Returns (cells, truncated)."""
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}/timeline"
+    try:
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        all_cells = resp.json().get("data", [])
+    except Exception:
+        return [], False
+
+    truncated = len(all_cells) > TIMELINE_CELL_LIMIT
+    cells = all_cells[:TIMELINE_CELL_LIMIT]
+    output = []
+    for cell in cells:
+        cell_attrs = cell.get("attributes", {})
+        output.append(
+            {
+                "id": cell.get("id", ""),
+                "cell_type": cell_attrs.get("cell_type", ""),
+                "created": cell_attrs.get("created", ""),
+                "content": cell_attrs.get("content", {}),
+            }
+        )
+    return output, truncated
+
+
 @incident.command(name="get")
 @click.argument("incident_id")
 @click.option(
@@ -288,11 +321,13 @@ def list_incidents(
 )
 @handle_api_error
 def get_incident(incident_id, format):
-    """Get incident details."""
+    """Get incident details including timeline cells."""
     client = get_datadog_client()
+    config = load_config()
 
     with console.status(f"[cyan]Fetching incident {incident_id}...[/cyan]"):
         response = client.incidents.get_incident(incident_id=incident_id)
+        timeline_cells, truncated = _fetch_timeline_cells(incident_id, config)
 
     inc = response.data
     attrs = inc.attributes
@@ -309,7 +344,14 @@ def get_incident(incident_id, format):
             "resolved": _stringify_datetime(getattr(attrs, "resolved", "")),
             "created": _stringify_datetime(getattr(attrs, "created", "")),
             "modified": _stringify_datetime(getattr(attrs, "modified", "")),
+            "timeline": timeline_cells,
         }
+        if truncated:
+            output["timeline_truncated"] = True
+            output["timeline_hint"] = (
+                f"Timeline truncated to {TIMELINE_CELL_LIMIT} cells. "
+                "Use dd_incidents_get_timeline for the full output."
+            )
         click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
     else:
         console.print(f"\n[bold cyan]Incident {inc.id}[/bold cyan]")
@@ -338,6 +380,37 @@ def get_incident(incident_id, format):
         console.print(
             f"[bold]Modified:[/bold] {_stringify_datetime(getattr(attrs, 'modified', ''))}"
         )
+
+        if timeline_cells:
+            console.print(f"\n[bold]Timeline[/bold] [dim]({len(timeline_cells)} cells)[/dim]")
+            for cell in timeline_cells:
+                cell_type = cell.get("cell_type", "")
+                created = cell.get("created", "")[:19]
+                content = cell.get("content", {})
+                console.print(f"\n  [dim]{created}[/dim] [yellow]{cell_type}[/yellow]")
+                if cell_type == "markdown":
+                    console.print(f"  {content.get('content', '')[:500]}")
+                elif cell_type == "incident_status_change":
+                    action = content.get("action", "")
+                    after = content.get("after", {})
+                    before = content.get("before", {})
+                    if action == "created":
+                        console.print(
+                            f"  Created — {after.get('title', '')} {after.get('severity', '')}"
+                        )
+                    elif action == "updated":
+                        for key in set(list(before.keys()) + list(after.keys())):
+                            if before.get(key) != after.get(key):
+                                console.print(
+                                    f"  {key}: {before.get(key, '')} → {after.get(key, '')}"
+                                )
+                else:
+                    console.print(f"  {json.dumps(content)[:200]}")
+            if truncated:
+                console.print(
+                    f"\n  [dim]Timeline truncated to {TIMELINE_CELL_LIMIT} cells. "
+                    "Use `puppy incident timeline list` for the full output.[/dim]"
+                )
 
 
 @incident.command(name="create")

@@ -106,16 +106,25 @@ def dd_incidents_list(
 
 @mcp.tool()
 def dd_incidents_get(incident_id: str) -> str:
-    """Get full details of a single Datadog incident by ID.
+    """Get full details of a single Datadog incident by ID, including timeline cells.
 
     Use this after dd_incidents_list to drill into a specific incident. Returns
     title, status, severity, customer_impacted, public_id, detected, resolved,
-    created, and modified timestamps.
+    created, and modified timestamps — plus the incident timeline.
+
+    The timeline is the primary source of truth. It contains the original markdown
+    notes posted by agents and humans (bug report context, user scope, triage notes)
+    and every status change event with before/after values. Incident titles and
+    root_cause fields can be overwritten during triage; the timeline preserves the
+    unmodified original signals.
+
+    Timeline is truncated to the first 10 cells. If timeline_truncated is true in
+    the response, use dd_incidents_get_timeline to paginate the full output.
 
     Args:
         incident_id: The incident UUID to retrieve.
 
-    Returns JSON with full incident details.
+    Returns JSON with full incident details and timeline cells.
     """
     from puppy_kit.commands.incident import get_incident
 
