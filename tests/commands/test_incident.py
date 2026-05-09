@@ -239,9 +239,15 @@ class TestGetIncident:
         inc = _make_incident("inc-1", "Service outage", "SEV-1", "active")
         response = Mock(data=inc)
         mock_client.incidents.get_incident.return_value = response
+        mock_config = Mock(site="us5.datadoghq.com", api_key="test", app_key="test")
 
         with patch("puppy_kit.commands.incident.get_datadog_client", return_value=mock_client):
-            result = runner.invoke(incident, ["get", "inc-1"])
+            with patch(
+                "puppy_kit.commands.incident.requests.get",
+                side_effect=self._make_get_requests_mock(),
+            ):
+                with patch("puppy_kit.commands.incident.load_config", return_value=mock_config):
+                    result = runner.invoke(incident, ["get", "inc-1"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "inc-1" in result.output
