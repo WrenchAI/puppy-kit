@@ -281,6 +281,68 @@ def list_incidents(
         console.print(f"\n[dim]Total incidents: {len(all_incidents)}[/dim]")
 
 
+TIMELINE_CELL_LIMIT = 10
+
+
+def _fetch_custom_fields(incident_id: str, config) -> dict:
+    """Fetch custom field values for an incident. Returns a flat key→value dict."""
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}"
+    try:
+        resp = requests.get(
+            url, headers=headers, params={"include": "user_defined_fields"}, timeout=30
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return {}
+
+    fields_obj = data.get("data", {}).get("attributes", {}).get("fields", {})
+    result = {}
+    if isinstance(fields_obj, dict):
+        for key, value_obj in fields_obj.items():
+            if isinstance(value_obj, dict):
+                field_value = value_obj.get("value")
+            else:
+                field_value = getattr(value_obj, "value", None)
+            if field_value is not None:
+                result[key] = field_value
+    return result
+
+
+def _fetch_timeline_cells(incident_id: str, config) -> tuple[list[dict], bool]:
+    """Fetch timeline cells for an incident. Returns (cells, truncated)."""
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}/timeline"
+    try:
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        all_cells = resp.json().get("data", [])
+    except Exception:
+        return [], False
+
+    truncated = len(all_cells) > TIMELINE_CELL_LIMIT
+    cells = all_cells[:TIMELINE_CELL_LIMIT]
+    output = []
+    for cell in cells:
+        cell_attrs = cell.get("attributes", {})
+        output.append(
+            {
+                "id": cell.get("id", ""),
+                "cell_type": cell_attrs.get("cell_type", ""),
+                "created": cell_attrs.get("created", ""),
+                "content": cell_attrs.get("content", {}),
+            }
+        )
+    return output, truncated
+
+
 @incident.command(name="get")
 @click.argument("incident_id")
 @click.option(
@@ -288,11 +350,14 @@ def list_incidents(
 )
 @handle_api_error
 def get_incident(incident_id, format):
-    """Get incident details."""
+    """Get incident details including custom fields and timeline cells."""
     client = get_datadog_client()
+    config = load_config()
 
     with console.status(f"[cyan]Fetching incident {incident_id}...[/cyan]"):
         response = client.incidents.get_incident(incident_id=incident_id)
+        custom_fields = _fetch_custom_fields(incident_id, config)
+        timeline_cells, truncated = _fetch_timeline_cells(incident_id, config)
 
     inc = response.data
     attrs = inc.attributes
@@ -309,8 +374,16 @@ def get_incident(incident_id, format):
             "resolved": _stringify_datetime(getattr(attrs, "resolved", "")),
             "created": _stringify_datetime(getattr(attrs, "created", "")),
             "modified": _stringify_datetime(getattr(attrs, "modified", "")),
+            "fields": custom_fields,
+            "timeline": timeline_cells,
         }
-        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
+        if truncated:
+            output["timeline_truncated"] = True
+            output["timeline_hint"] = (
+                f"Timeline truncated to {TIMELINE_CELL_LIMIT} cells. "
+                "Use dd_incidents_get_timeline for the full output."
+            )
+        click.echo(json.dumps(output))
     else:
         console.print(f"\n[bold cyan]Incident {inc.id}[/bold cyan]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -338,6 +411,42 @@ def get_incident(incident_id, format):
         console.print(
             f"[bold]Modified:[/bold] {_stringify_datetime(getattr(attrs, 'modified', ''))}"
         )
+
+        if custom_fields:
+            console.print("\n[bold]Fields[/bold]")
+            for key, value in sorted(custom_fields.items()):
+                console.print(f"  [cyan]{key}:[/cyan] {value}")
+
+        if timeline_cells:
+            console.print(f"\n[bold]Timeline[/bold] [dim]({len(timeline_cells)} cells)[/dim]")
+            for cell in timeline_cells:
+                cell_type = cell.get("cell_type", "")
+                created = cell.get("created", "")[:19]
+                content = cell.get("content", {})
+                console.print(f"\n  [dim]{created}[/dim] [yellow]{cell_type}[/yellow]")
+                if cell_type == "markdown":
+                    console.print(f"  {content.get('content', '')[:500]}")
+                elif cell_type == "incident_status_change":
+                    action = content.get("action", "")
+                    after = content.get("after", {})
+                    before = content.get("before", {})
+                    if action == "created":
+                        console.print(
+                            f"  Created — {after.get('title', '')} {after.get('severity', '')}"
+                        )
+                    elif action == "updated":
+                        for key in set(list(before.keys()) + list(after.keys())):
+                            if before.get(key) != after.get(key):
+                                console.print(
+                                    f"  {key}: {before.get(key, '')} → {after.get(key, '')}"
+                                )
+                else:
+                    console.print(f"  {json.dumps(content)[:200]}")
+            if truncated:
+                console.print(
+                    f"\n  [dim]Timeline truncated to {TIMELINE_CELL_LIMIT} cells. "
+                    "Use `puppy incident timeline list` for the full output.[/dim]"
+                )
 
 
 @incident.command(name="create")
@@ -421,7 +530,7 @@ def create_incident(title, severity, team, assignee, customer_impacted, format):
             "severity": _stringify_enum(_incident_severity(attrs), severity or "unknown"),
             "status": _stringify_enum(_incident_state(attrs), "unknown"),
         }
-        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
+        click.echo(json.dumps(output))
     else:
         console.print(f"[green]Incident {inc.id} created[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -633,7 +742,7 @@ def update_incident(
             "status": _stringify_enum(_incident_state(attrs), "unknown"),
             "assignee": getattr(attrs, "assignee", ""),
         }
-        click.echo(json.dumps(json_list_response(output)))  # ty:ignore[invalid-argument-type]
+        click.echo(json.dumps(output))
     else:
         console.print(f"[green]Incident {incident_id} updated[/green]")
         console.print(f"[bold]Title:[/bold] {getattr(attrs, 'title', '')}")
@@ -674,34 +783,9 @@ def fields():
 def get_fields(incident_id, format):
     """Get custom field values for an incident."""
     config = load_config()
-    headers = {
-        "DD-API-KEY": config.api_key,
-        "DD-APPLICATION-KEY": config.app_key,
-    }
-    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}"
-    params = {"include": "user_defined_fields"}
-    # The SDK does not expose the 'include' query parameter for this endpoint.
 
     with console.status(f"[cyan]Fetching incident fields for {incident_id}...[/cyan]"):
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-
-    fields_dict = {}
-    response_data = data.get("data", {})
-    attributes = response_data.get("attributes", {})
-    fields_obj = attributes.get("fields", {})
-
-    if isinstance(fields_obj, dict):
-        for key, value_obj in fields_obj.items():
-            if isinstance(value_obj, dict):
-                field_value = value_obj.get("value")
-                if field_value is not None:
-                    fields_dict[key] = field_value
-            else:
-                field_value = getattr(value_obj, "value", None)
-                if field_value is not None:
-                    fields_dict[key] = field_value
+        fields_dict = _fetch_custom_fields(incident_id, config)
 
     if format == "json":
         click.echo(json.dumps({"data": fields_dict}))
@@ -1126,3 +1210,84 @@ def delete_attachment(incident_id, attachment_id):
         resp.raise_for_status()
 
     console.print("[green]Attachment deleted[/green]")
+
+
+@incident.group()
+def timeline():
+    """Incident timeline commands."""
+    pass
+
+
+@timeline.command(name="list")
+@click.argument("incident_id")
+@click.option(
+    "--format", type=click.Choice(["json", "table"]), default="table", help="Output format"
+)
+@handle_api_error
+def list_timeline(incident_id, format):
+    """List timeline cells for an incident.
+
+    Returns all timeline entries in chronological order: markdown notes posted
+    by agents or humans, and system status change events. This is the primary
+    source of truth for understanding what triggered an incident and what was
+    observed during triage.
+    """
+    config = load_config()
+    headers = {
+        "DD-API-KEY": config.api_key,
+        "DD-APPLICATION-KEY": config.app_key,
+    }
+    url = f"https://api.{config.site}/api/v2/incidents/{incident_id}/timeline"
+
+    with console.status(f"[cyan]Fetching timeline for {incident_id}...[/cyan]"):
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+
+    cells = data.get("data", [])
+
+    if format == "json":
+        output = []
+        for cell in cells:
+            attrs = cell.get("attributes", {})
+            output.append(
+                {
+                    "id": cell.get("id", ""),
+                    "cell_type": attrs.get("cell_type", ""),
+                    "created": attrs.get("created", ""),
+                    "modified": attrs.get("modified", ""),
+                    "content": attrs.get("content", {}),
+                }
+            )
+        click.echo(json.dumps({"data": output}))
+    else:
+        console.print(f"\n[bold cyan]Timeline for {incident_id}[/bold cyan]")
+        console.print(f"[dim]{len(cells)} cells[/dim]\n")
+        for cell in cells:
+            attrs = cell.get("attributes", {})
+            cell_type = attrs.get("cell_type", "")
+            created = attrs.get("created", "")[:19]
+            content = attrs.get("content", {})
+
+            console.print(f"[dim]{created}[/dim] [yellow]{cell_type}[/yellow]")
+
+            if cell_type == "markdown":
+                md_content = content.get("content", "")
+                console.print(md_content)
+            elif cell_type == "incident_status_change":
+                action = content.get("action", "")
+                after = content.get("after", {})
+                before = content.get("before", {})
+                if action == "created":
+                    console.print(
+                        f"  Incident created — title: {after.get('title', '')} severity: {after.get('severity', '')}"
+                    )
+                elif action == "updated":
+                    for key in set(list(before.keys()) + list(after.keys())):
+                        if before.get(key) != after.get(key):
+                            console.print(
+                                f"  {key}: [red]{before.get(key, '')}[/red] → [green]{after.get(key, '')}[/green]"
+                            )
+            else:
+                console.print(f"  {json.dumps(content)[:200]}")
+            console.print()

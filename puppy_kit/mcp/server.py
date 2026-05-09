@@ -108,14 +108,25 @@ def dd_incidents_list(
 def dd_incidents_get(incident_id: str) -> str:
     """Get full details of a single Datadog incident by ID.
 
-    Use this after dd_incidents_list to drill into a specific incident. Returns
-    title, status, severity, customer_impacted, public_id, detected, resolved,
-    created, and modified timestamps.
+    Returns metadata, all custom fields, and the first 10 timeline cells in one
+    response. Use this after dd_incidents_list to drill into a specific incident.
+
+    Always follow this call with dd_incidents_get_timeline — the timeline is a
+    primary source of information and must always be read before drawing any
+    conclusions. Incident titles and fields are overwritten during triage;
+    the timeline is append-only and contains the unmodified original signals
+    (bug report content, user scope, what actually triggered the incident).
+
+    The fields block contains triage data: root_cause, summary, triage_findings,
+    services, teams, needshumanattention, triagecompleted, githubreferences, etc.
+
+    If timeline_truncated is true, the incident has more than 10 cells —
+    call dd_incidents_get_timeline to read the full timeline.
 
     Args:
         incident_id: The incident UUID to retrieve.
 
-    Returns JSON with full incident details.
+    Returns JSON with incident metadata, fields, and timeline cells.
     """
     from puppy_kit.commands.incident import get_incident
 
@@ -264,11 +275,11 @@ def dd_incidents_update(
 
 @mcp.tool()
 def dd_incidents_get_fields(incident_id: str) -> str:
-    """Return the custom field values for a single Datadog incident.
+    """Return only the custom field values for a single Datadog incident.
 
-    Use this after dd_incidents_get when you need to read the workflow fields
-    (triage_completed, needs_human_attention, root_cause, summary, etc.) that
-    are not included in the main incident payload.
+    Note: dd_incidents_get already includes all fields inline. Use this tool
+    only when you need a lightweight fields-only response without the full
+    metadata and timeline payload.
 
     Args:
         incident_id: The incident UUID to query.
@@ -279,6 +290,37 @@ def dd_incidents_get_fields(incident_id: str) -> str:
 
     result = CliRunner().invoke(
         get_fields, [incident_id, "--format", "json"], catch_exceptions=False
+    )
+    return result.output
+
+
+@mcp.tool()
+def dd_incidents_get_timeline(incident_id: str) -> str:
+    """Get the full timeline of a Datadog incident. Always call this when triaging.
+
+    The timeline is a primary source of information for any incident. It contains
+    the unmodified original signals: markdown notes posted by agents and humans
+    (bug report context, user scope, investigation notes) and every status change
+    event with before/after values. Always read the timeline before drawing any
+    conclusions — incident titles, root_cause, and other fields can be overwritten
+    during triage, but the timeline is append-only and preserves what actually happened.
+
+    dd_incidents_get includes the first 10 cells inline as a convenience. Call this
+    tool to get the complete timeline, especially when timeline_truncated is true.
+
+    Args:
+        incident_id: The incident UUID to retrieve timeline for.
+
+    Returns JSON array of all timeline cells in chronological order. Each cell has:
+        - cell_type: 'markdown' (agent/human notes) or 'incident_status_change'
+        - created: ISO timestamp
+        - content: for markdown cells, 'content' key holds the raw markdown text;
+                   for status_change cells, 'before'/'after'/'action' show what changed.
+    """
+    from puppy_kit.commands.incident import list_timeline
+
+    result = CliRunner().invoke(
+        list_timeline, [incident_id, "--format", "json"], catch_exceptions=False
     )
     return result.output
 
